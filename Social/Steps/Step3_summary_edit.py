@@ -11,8 +11,6 @@ lib_path = r'S:\WIBR_Dreosti_Lab\Tom\Github\SCZ_Model_Fish\libs'
 # Set Library Paths
 import sys
 sys.path.append(lib_path)
-#-----------------------------------------------------------------------------
-
 # -----------------------------------------------------------------------------
 # Import useful libraries
 import numpy as np
@@ -24,19 +22,73 @@ import cv2
 import scipy.stats as st
 # Import local modules
 import SCZ_utilities as SCZU
-
-save=True
-keep=False
+import SCZ_summary as SCZS
+save=False
+keep=True
 # freeze_threshold_seconds=4
 # long_freeze_threshold_seconds=60
 # gene = 'trio'
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
 base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
-analysisRoot = base_path + r'/Analysis_TestNew/' 
+analysisRoot = base_path + r'/Analysis_Monday/' 
 folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/testy.txt'
 # folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort.txt' #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
 
 #%%##### Functions #############
+# kde plots
+
+def kde (x,y,xrange,yrange,msize):
+    xx, yy = np.mgrid[xrange[0]:xrange[1]:msize, yrange[0]:yrange[1]:msize]
+    xx, yy = np.mgrid[xrange[0]:xrange[1]:msize, yrange[0]:yrange[1]:msize]
+    positions = np.vstack([xx.ravel(), yy.ravel()])
+    values = np.vstack([x, y])
+    kernel = st.gaussian_kde(values)
+    f = np.reshape(kernel(positions).T, xx.shape)
+    return xx,yy,f
+    
+def kdeplot(ns,s,savename=None,xrange=([0, 17]) ,yrange=([0, 42]),msize=10j,save=True,keep=False,title='KDE Plot'):
+#-----------------------------------
+    plt.figure()
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.subplot(1,2,1)
+    plt.title('NonSocial Phase')
+    
+    # kde 
+    x=ns[:, 1]
+    y=ns[:, 2]
+    xx,yy,f=kde(x,y,xrange,yrange,msize)
+    plt.contour(xx, yy, f, colors='k')
+    plt.axis([xrange[0], xrange[1], yrange[0], yrange[1]])
+    plt.gca().invert_yaxis()
+        
+    plt.subplot(1,2,2)
+    plt.title('Social Phase')
+    
+    # kde
+    x=s[:, 1]
+    y=s[:, 2]
+    xx,yy,f=kde(x,y,xrange,yrange,msize)
+    plt.contour(xx, yy, f, colors='k')
+    plt.axis([xrange[0], xrange[1], yrange[0], yrange[1]])
+    plt.gca().invert_yaxis()
+    plt.suptitle(title)
+    
+    if save:
+        if savename==None:
+            print("You haven't assigned a savename so we'll keep the figure in case you wanted it")
+            keep=True
+        else:
+            plt.savefig(savename,dpi=600)
+            
+    if keep==False:
+        plt.close()
+        return -1
+    else:
+        axes=plt.gca
+        return axes
+#-----------------------------   
+    
+
 def assignVars(inList,outList,fidx,var=0):
     
     if var == 0:
@@ -207,70 +259,46 @@ def plotSummaryBPS(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=F
         axes=plt.gca
     return axes
 
-def plotSummaryBouts(ns,s,filename,title,save=True,keep=False):
+def plotSummaryFreezes(ns,s,filename,title,save=True,keep=False):
     plt.figure()
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    bar_width=0.005
+    bar_width=0.5
+    bins=100
+    bins=bins+1
+    rang=(500,9000)
     
     # NS
     visible_bouts = np.where(ns[:,9] == 1)[0]
     non_visible_bouts = np.where(ns[:,9] == 0)[0]
     plt.subplot(221)
-    bout_durations_ns, c = np.histogram(ns[non_visible_bouts,8], bins=51, range=(0,50))
+    bout_durations_ns, c = np.histogram(ns[non_visible_bouts,8], bins=bins, range=rang)
     centers = (c[:-1]+c[1:])/2
     plt.bar(centers/100, bout_durations_ns, width=bar_width, color=[0.5,0.5,0.5,1.0], linewidth=4.0)
-    plt.title('Non Social Bout Durations', fontsize=12)
+    plt.title('Non Social Freeze Durations', fontsize=12)
     plt.ylabel('Rel. Frequency', fontsize=12)
     plt.subplot(223)
-    bout_durations_ns, c = np.histogram(ns[visible_bouts,8], bins=51, range=(0,50))
+    bout_durations_ns, c = np.histogram(ns[visible_bouts,8], bins=bins, range=rang)
     centers = (c[:-1]+c[1:])/2
     plt.bar(centers/100, bout_durations_ns, width=bar_width, color=[0.5,0.5,0.5,1.0], linewidth=4.0)
-    plt.title('Non Social Bout Durations', fontsize=12)
-    plt.xlabel('Bout Durations (sec)', fontsize=12)
+    plt.title('Non Social Freeze Durations', fontsize=12)
+    plt.xlabel('Freeze Durations (sec)', fontsize=12)
     plt.ylabel('Rel. Frequency', fontsize=12)
     # S
     visible_bouts = np.where(s[:,9] == 1)[0]
     non_visible_bouts = np.where(s[:,9] == 0)[0]
     plt.subplot(222)
-    bout_durations_s, c = np.histogram(s[non_visible_bouts,8], bins=51, range=(0,50))
+    bout_durations_s, c = np.histogram(s[non_visible_bouts,8], bins=bins, range=rang)
     centers = (c[:-1]+c[1:])/2
     plt.bar(centers/100, bout_durations_s, width=bar_width, color=[1.0,0.5,0.5,1.0], linewidth=4.0)
-    plt.title('Social Bout Durations', fontsize=12)
+    plt.title('Social Freeze Durations', fontsize=12)
     plt.ylabel('Rel. Frequency', fontsize=12)
     plt.subplot(224)
-    bout_durations_s, c = np.histogram(s[visible_bouts,8], bins=51, range=(0,50))
+    bout_durations_s, c = np.histogram(s[visible_bouts,8], bins=bins, range=rang)
     centers = (c[:-1]+c[1:])/2
     plt.bar(centers/100, bout_durations_s, width=bar_width, color=[1.0,0.5,0.5,1.0], linewidth=4.0)
-    plt.title('Social Bout Durations', fontsize=12)
-    plt.xlabel('Bout Durations (sec)', fontsize=12)
+    plt.title('Social Freeze Durations', fontsize=12)
+    plt.xlabel('Freeze Durations (sec)', fontsize=12)
     plt.ylabel('Rel. Frequency', fontsize=12)
-    plt.suptitle(title)
-    
-    if save:
-        plt.savefig(filename,dpi=600)
-    if keep==False:
-        plt.close()
-        axes=-1
-    else:
-        axes=plt.gca
-    return axes
-
-    # -------------------------------------------------------------------------
-def plotSummaryBoutLocations(ns,s,filename,title,save=True,keep=False):
-    # All Bouts Summary Plot
-    plt.figure()
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.subplot(1,2,1)
-    plt.title('NonSocial Phase')
-    plt.plot(ns[:, 1], ns[:, 2], '.', color=[0.0, 0.0, 0.0, 0.002])
-    plt.axis([0, 17, 0, 42])
-    plt.gca().invert_yaxis()
-        
-    plt.subplot(1,2,2)
-    plt.title('Social Phase')
-    plt.plot(s[:, 1], s[:, 2], '.', color=[0.0, 0.0, 0.0, 0.002])
-    plt.axis([0, 17, 0, 42])
-    plt.gca().invert_yaxis()
     plt.suptitle(title)
     
     if save:
@@ -482,6 +510,9 @@ for gene in geneList:
     Pauses_NS_ALL = np.zeros((0,10))   
     Pauses_S_ALL = np.zeros((0,10))
     
+    Pauses_Frozen_NS_ALL = np.zeros((0,10))
+    Pauses_Frozen_S_ALL = np.zeros((0,10))
+    
     # TR added 20/04/23
     midCrossings_NS_ALL = np.zeros(numFiles_ALL)
     midCrossings_S_ALL = np.zeros(numFiles_ALL)
@@ -529,7 +560,9 @@ for gene in geneList:
     Pauses_NS_COHORT_list = []
     Pauses_S_COHORT_list = []
     
-    # TR added 20/04/23
+    Pauses_Frozen_NS_COHORT_list=[]
+    Pauses_Frozen_S_COHORT_list=[]
+    
     midCrossings_NS_COHORT_list=[]
     midCrossings_S_COHORT_list=[]
     boutsAngles_NS_COHORT_list=[]
@@ -577,6 +610,9 @@ for gene in geneList:
         Pauses_NS_COHORT = np.zeros((0,10))   
         Pauses_S_COHORT = np.zeros((0,10))
         
+        Pauses_Frozen_NS_COHORT = np.zeros((0,10))   
+        Pauses_Frozen_S_COHORT = np.zeros((0,10))
+        
         # TR added 20/04/23
         midCrossings_NS_COHORT = np.zeros(numFiles_COHORT)
         midCrossings_S_COHORT = np.zeros(numFiles_COHORT)
@@ -619,6 +655,8 @@ for gene in geneList:
             Bouts_S = dataobject['Bouts_S']
             Pauses_NS = dataobject['Pauses_NS']   
             Pauses_S = dataobject['Pauses_S']
+            Pauses_Frozen_NS = dataobject['Pauses_Frozen_NS']
+            Pauses_Frozen_S = dataobject['Pauses_Frozen_S']
             Percent_Moving_NS = dataobject['Percent_Moving_NS']   
             Percent_Moving_S = dataobject['Percent_Moving_S']
             Freezes_NS = dataobject['Freezes_NS']
@@ -700,12 +738,16 @@ for gene in geneList:
             CvarList3=[Bouts_NS_COHORT,
                        Bouts_S_COHORT,
                        Pauses_NS_COHORT,
-                       Pauses_S_COHORT]
+                       Pauses_S_COHORT,
+                       Pauses_Frozen_NS_COHORT,
+                       Pauses_Frozen_S_COHORT]
             
             AvarList3=[Bouts_NS_ALL,
                        Bouts_S_ALL,
                        Pauses_NS_ALL,
-                       Pauses_S_ALL]
+                       Pauses_S_ALL,
+                       Pauses_Frozen_NS_ALL,
+                       Pauses_Frozen_S_ALL]
             
             inList1=[VPI_NS,
                      VPI_S,
@@ -739,7 +781,9 @@ for gene in geneList:
             inList3=[Bouts_NS,
                      Bouts_S,
                      Pauses_NS,
-                     Pauses_S]
+                     Pauses_S,
+                     Pauses_Frozen_NS,
+                     Pauses_Frozen_S]
             
             [VPI_NS,
              VPI_S,
@@ -852,8 +896,25 @@ for gene in geneList:
             [Bouts_NS_COHORT,
              Bouts_S_COHORT,
              Pauses_NS_COHORT,
-             Pauses_S_COHORT],CvarList3=assignVars(inList3,CvarList3,fidx,var=3)
-            inList3,AvarList3=assignVars(inList3,AvarList3,ALL_fileCount,var=3)
+             Pauses_S_COHORT,
+             Pauses_Frozen_NS_COHORT,
+             Pauses_Frozen_S_COHORT],[Bouts_NS_COHORT,
+                        Bouts_S_COHORT,
+                        Pauses_NS_COHORT,
+                        Pauses_S_COHORT,
+                        Pauses_Frozen_NS_COHORT,
+                        Pauses_Frozen_S_COHORT]=assignVars(inList3,CvarList3,fidx,var=3)
+            [Bouts_NS,
+             Bouts_S,
+             Pauses_NS,
+             Pauses_S,
+             Pauses_Frozen_NS,
+             Pauses_Frozen_S],[Bouts_NS_ALL,
+                               Bouts_S_ALL,
+                               Pauses_NS_ALL,
+                               Pauses_S_ALL,
+                               Pauses_Frozen_NS_ALL,
+                               Pauses_Frozen_S_ALL]=assignVars(inList3,AvarList3,ALL_fileCount,var=3)
             
             VPI_NS_COHORT[fidx] = VPI_NS
             VPI_S_COHORT[fidx] = VPI_S
@@ -886,11 +947,13 @@ for gene in geneList:
             Freezes_X_S_COHORT[fidx] = Freezes_X_S
             Freezes_Y_S_COHORT[fidx] = Freezes_Y_S
         
-            # Concat ALL Pauses/Bouts
+            # Concat ALL Pauses/Bouts/Freezes
             Bouts_NS_COHORT = np.vstack([Bouts_NS_COHORT, Bouts_NS])
             Bouts_S_COHORT = np.vstack([Bouts_S_COHORT, Bouts_S])
             Pauses_NS_COHORT = np.vstack([Pauses_NS_COHORT, Pauses_NS])
             Pauses_S_COHORT = np.vstack([Pauses_S_COHORT, Pauses_S])
+            Pauses_Frozen_NS_COHORT = np.vstack([Pauses_Frozen_NS_COHORT, Pauses_Frozen_NS])
+            Pauses_Frozen_S_COHORT = np.vstack([Pauses_Frozen_S_COHORT, Pauses_Frozen_S])
             
             # TR added 20/04/23
             midCrossings_NS_COHORT[fidx] = midCrossings_NS
@@ -928,6 +991,8 @@ for gene in geneList:
             Bouts_S_ALL = np.vstack([Bouts_S_ALL, Bouts_S])
             Pauses_NS_ALL = np.vstack([Pauses_NS_ALL, Pauses_NS])
             Pauses_S_ALL = np.vstack([Pauses_S_ALL, Pauses_S])
+            Pauses_Frozen_NS_ALL = np.vstack([Pauses_Frozen_NS_ALL, Pauses_Frozen_NS])
+            Pauses_Frozen_S_ALL = np.vstack([Pauses_Frozen_S_ALL, Pauses_Frozen_S])
             
             # TR added 20/04/23
             midCrossings_NS_ALL[ALL_fileCount] = midCrossings_NS
@@ -937,7 +1002,7 @@ for gene in geneList:
             boutsDist_NS_ALL[ALL_fileCount] = boutsDist_NS
             boutsDist_S_ALL[ALL_fileCount] = boutsDist_S
             Freezes_X_NS_ALL[ALL_fileCount] = Freezes_X_NS
-            Freezes_Y_NS_ALL[ALL_fileCount] = Freezes_Y_NS_ALL
+            Freezes_Y_NS_ALL[ALL_fileCount] = Freezes_Y_NS
             Freezes_X_S_ALL[ALL_fileCount] = Freezes_X_S
             Freezes_Y_S_ALL[ALL_fileCount] = Freezes_Y_S
             
@@ -1024,6 +1089,9 @@ for gene in geneList:
         Bouts_S_COHORT_list.append(Bouts_S_COHORT)
         Pauses_NS_COHORT_list.append(Pauses_NS_COHORT)
         Pauses_S_COHORT_list.append(Pauses_S_COHORT)
+        
+        Pauses_Frozen_NS_COHORT_list.append(Pauses_Frozen_NS_COHORT)
+        Pauses_Frozen_S_COHORT_list.append(Pauses_Frozen_S_COHORT)
                 
         # TR added 20/04/23
         midCrossings_NS_COHORT_list.append(midCrossings_NS_COHORT)
@@ -1043,7 +1111,6 @@ for gene in geneList:
 #------------------------------------------------------------------------------
 #%%  Figures - still inside fileLoop
 # 20/04/23 Added angles, distances for bouts; midcrossings and freeze locations
-
     #%% Figures
     # Angle vs distance summary for whole group (ALL)
     # collect all bouts from this fish type (we may want to do kde so better to jut collect it all now)
@@ -1065,7 +1132,7 @@ for gene in geneList:
             Dists_S_ALL.append(Dists_S_temp[xi])
     
     filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_ALL.png'
-    plt.figure('Scatter All S')
+    plt.figure('Scatter All NS')
     plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.1)
     plt.xlim(-200,200)
     plt.ylim(-10,200)
@@ -1075,8 +1142,8 @@ for gene in geneList:
         plt.close()
         
     filename = analysisFolder + '/' + gene + '_AngleVsDist_S_ALL.png'
-    plt.figure('Scatter All NS')
-    plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.1)
+    plt.figure('Scatter All S')
+    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='black',alpha=0.1)
     plt.xlim(-200,200)
     plt.ylim(-10,200)
     if save:
@@ -1087,36 +1154,13 @@ for gene in geneList:
     filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_ALL.png'
     plt.figure('Scatter All vs')
     plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.1)
-    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='magenta',alpha=0.1)
+    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='magenta',alpha=0.05)
     plt.xlim(-200,200)
     plt.ylim(-10,200)
     if save:
         plt.savefig(filename,dpi=600)
     if keep==False:
         plt.close()
-    
-    # try kde plots
-
-    def kdeplot(x,y,xrange,yrange):
-        # Peform the kernel density estimate
-        xx, yy = np.mgrid[xrange[0]:xrange[1]:500j, yrange[0]:yrange[1]:500j]
-        positions = np.vstack([xx.ravel(), yy.ravel()])
-        values = np.vstack([x, y])
-        kernel = st.gaussian_kde(values)
-        f = np.reshape(kernel(positions).T, xx.shape)
-
-        fig = plt.figure()
-        ax = fig.gca()
-        ax.set_xlim(xrange[0], xrange[1])
-        ax.set_ylim(yrange[0], yrange[1])
-        ax.contour(xx, yy, f, colors='k')
-        return fig
-    
-    x=Angles_NS_ALL
-    y=Dists_NS_ALL    
-    
-    xRange=(-270,270)
-    yRange=(0,300)
     
     # VPI Summary
     #------------------------------------------------------------------------------
@@ -1188,28 +1232,80 @@ for gene in geneList:
     # Bouts ALL
     title='Bouts ALL ' + str(gene)
     filename = analysisFolder + '/' + gene + '_Bouts_ALL.png'
-    plotSummaryBouts(Bouts_NS_ALL,Bouts_S_ALL,filename,title,save=save,keep=keep)
+    SCZS.plotSummaryBouts(Bouts_NS_ALL,Bouts_S_ALL,filename,title,save=save,keep=keep)
     # Bouts Cohorts
     for i in range(num_cohorts):
         filename = analysisFolder + '/' + gene + '_Bouts_COHORT_' + str(i+1) + '.png'
         title='Bouts COHORT ' + str(i+1) + ' ' + str(gene)
         Bouts_NS=Bouts_NS_COHORT_list[i]
         Bouts_S=Bouts_S_COHORT_list[i]
-        plotSummaryBouts(Bouts_NS,Bouts_S,filename,title,save=save,keep=keep)
+        SCZS.plotSummaryBouts(Bouts_NS,Bouts_S,filename,title,save=save,keep=keep)
         
     # Bout Locations
     filename = analysisFolder + '/' + gene + '_BoutLocations_ALL.png'
     title='Bout Location Summary ALL ' + str(gene)
-    plotSummaryBoutLocations(Bouts_NS_ALL,Bouts_S_ALL,filename,title,save=save,keep=keep)
+    SCZS.plotSummaryBoutLocations(Bouts_NS_ALL,Bouts_S_ALL,filename,title,save=save,keep=keep,alpha=0.002)
     # Bout Locations Cohorts
     for i in range(num_cohorts):
         filename = analysisFolder + '/' + gene + '_BoutLocations_COHORT_' + str(i+1) + '.png'
         title='Bout Location Summary COHORT ' + str(i+1) + ' ' + str(gene)
         Bouts_NS=Bouts_NS_COHORT_list[i]
         Bouts_S=Bouts_S_COHORT_list[i]
-        plotSummaryBoutLocations(Bouts_NS,Bouts_S,filename,title,save=save,keep=keep)
-    
+        SCZS.plotSummaryBoutLocations(Bouts_NS,Bouts_S,filename,title,save=save,keep=keep,alpha=0.002)
         
+    # Bout Locations KDE
+    # filename = analysisFolder + '/' + gene + '_BoutLocations_KDE_ALL.png'
+    # title='Bout Location Summary ALL KDE ' + str(gene)
+    # kdeplot(Bouts_NS_ALL,Bouts_S_ALL,savename=filename,title=title,save=save,keep=keep)
+    # # Bout Locations Cohorts
+    # for i in range(num_cohorts):
+    #     filename = analysisFolder + '/' + gene + '_BoutLocations_KDE_COHORT_' + str(i+1) + '.png'
+    #     title='Bout Location Summary COHORT KDE' + str(i+1) + ' ' + str(gene)
+    #     Bouts_NS=Bouts_NS_COHORT_list[i]
+    #     Bouts_S=Bouts_S_COHORT_list[i]
+    #     kdeplot(Bouts_NS,Bouts_S,savename=filename,title=title,save=save,keep=keep)
+    
+    # -----------------------------------------------------------------------------
+    # Freezes Summary Plot
+    # Freezes ALL
+    title='Freezes ALL ' + str(gene)
+    filename = analysisFolder + '/' + gene + '_FrozenPauses_ALL.png'
+    plotSummaryFreezes(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title,save=save,keep=keep)
+    # Freezes Cohorts
+    for i in range(num_cohorts):
+        filename = analysisFolder + '/' + gene + '_FrozenPauses_COHORT_' + str(i+1) + '.png'
+        title='Freeze COHORT ' + str(i+1) + ' ' + str(gene)
+        Pauses_Frozen_NS = Pauses_Frozen_NS_COHORT_list[i]
+        Pauses_Frozen_S = Pauses_Frozen_S_COHORT_list[i]
+        plotSummaryFreezes(Pauses_Frozen_NS,Pauses_Frozen_S,filename,title,save=save,keep=keep)
+        
+    # Freeze Locations ALL
+    filename = analysisFolder + '/' + gene + '_FreezeLocations_ALL.png'
+    title='Freeze Location Summary ALL' + str(gene)
+    SCZS.plotSummaryBoutLocations(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title,save=save,keep=keep,alpha=0.2)
+    
+    # Freeze Locations COHORTS
+    for i in range(num_cohorts):
+        filename = analysisFolder + '/' + gene + '_FreezeLocations_COHORT_' + str(i+1) + '.png'
+        title='Freeze Location Summary COHORT' + str(i+1) + ' ' + str(gene)
+        Pauses_Frozen_NS=Pauses_Frozen_NS_COHORT_list[i]
+        Pauses_Frozen_S=Pauses_Frozen_S_COHORT_list[i]
+        SCZS.plotSummaryBoutLocations(Pauses_Frozen_NS,Pauses_Frozen_S,filename,title,save=save,keep=keep,alpha=0.2)
+    
+    # KDE plots
+    # Freeze Locations ALL KDE
+    # filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_ALL.png'
+    # title='Freeze Location Summary ALL KDE' + str(gene)
+    # kdeplot(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title=title,save=save,keep=keep)
+    
+    # # Freeze Locations COHORTS KDE
+    # for i in range(num_cohorts):
+    #     filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_COHORT_' + str(i+1) + '.png'
+    #     title='Freeze Location Summary COHORT KDE' + str(i+1) + ' ' + str(gene)
+    #     Pauses_Frozen_NS=Pauses_Frozen_NS_COHORT_list[i]
+    #     Pauses_Frozen_S=Pauses_Frozen_S_COHORT_list[i]
+    #     kdeplot(Pauses_Frozen_NS,Pauses_Frozen_S,savename=filename,title=title,save=save,keep=keep)
+    
     # ----------------
     # Long Pauses Summary Plot
     # plt.figure()
@@ -1353,6 +1449,5 @@ for gene in geneList:
         filename=filename = analysisFolder + '/' + gene + '_BehaviourSummary.png'
         plt.savefig(filename,dpi=600)
         
-    # plot position of freezes
 print('FIN')
 # FIN

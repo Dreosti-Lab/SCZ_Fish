@@ -35,15 +35,15 @@ individual_cue_rois = True
 if individual_track_rois and individual_test_rois and individual_cue_rois: individual_rois= True
 
 # Specify Folder List
-folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/testy.txt'
+folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/All_cohorts.txt'
 # folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort_missing.txt' 
 #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
 
+# Specify Analysis path
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
 base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
-analysisRoot = base_path + r'/Analysis_TestNew/' 
+analysisRoot = base_path + r'/Analysis_MondayMAY/' 
 
-#analysisFolder = base_path + r'/Sham'
 # Set Flags
 check = False
 plot = True
@@ -218,23 +218,24 @@ for idx,folder in enumerate(folderNames):
             boutAngles_ns=boutsMet_ns[:,4]
             good_fish=True
             
-            if len(Bouts_ns) < 2 : good_fish = False
+            if len(Bouts_ns) < 1 : good_fish = False
             if good_fish:
                 Percent_Moving_ns = 100 * np.sum(Bouts_ns[:,8])/len(motion)
                 Percent_Paused_ns = 100 * np.sum(Pauses_ns[:,8])/len(motion)
             
                 freezes_X,freezes_Y = [],[]
-                # Count Freezes
+                # Count Freezes and save frozen pauses
                 freezeBool=Pauses_ns[:,8] > freeze_threshold
                 longFreezeBool=Pauses_ns[:,8] > long_freeze_threshold
                 Freezes_ns = np.array(np.sum(freezeBool))
+                Pauses_frozen_ns = Pauses_ns[freezeBool]
                 Long_Freezes_ns = np.array(np.sum(longFreezeBool))
                 Freezes_X_ns = Pauses_ns[freezeBool][:,1]
                 Freezes_Y_ns = Pauses_ns[freezeBool][:,2]
             else:
                 Percent_Moving_ns = 0
                 Percent_Paused_ns = 0
-            
+                Pauses_frozen_ns = np.zeros(10)
                 # Count Freezes
                 Freezes_ns = 0
                 Long_Freezes_ns = 0
@@ -244,6 +245,8 @@ for idx,folder in enumerate(folderNames):
 
             # Plot NS (maybe)
             if plot and good_fish:
+                # TODO: Add location of bouts / freezes for this fish
+                # TODO: Add spatial map of time spent frozen
                 # plot bout distance vs angle for this fish NS
                 plt.figure('scatter')
                 plt.scatter(boutAngles_ns,boutDists_ns,s=2,color='black',alpha=0.8)
@@ -254,6 +257,7 @@ for idx,folder in enumerate(folderNames):
                 plt.savefig(BoutFilename_ns,dpi=600)
                 plt.close('scatter')
                 
+                # plot other summary figs for this fish
                 plt.subplot(5,2,1)
                 plt.axis('off')
                 plt.plot(bx, by, '.', markersize=1, color = [0.0, 0.0, 0.0, 0.05])
@@ -340,7 +344,7 @@ for idx,folder in enumerate(folderNames):
             boutAngles_s=boutsMet_s[:,4]
             good_fish=True
             
-            if len(Bouts_s) < 2 : good_fish = False
+            if len(Bouts_s) < 1 : good_fish = False
             if good_fish:
                 Percent_Moving_s = 100 * np.sum(Bouts_s[:,8])/len(motion)
                 Percent_Paused_s = 100 * np.sum(Pauses_s[:,8])/len(motion)
@@ -348,10 +352,11 @@ for idx,folder in enumerate(folderNames):
                 # Count Freezes
                 freezeBool=Pauses_s[:,8] > freeze_threshold
                 longFreezeBool=Pauses_s[:,8] > long_freeze_threshold
+                Pauses_frozen_s=Pauses_s[freezeBool]
                 Freezes_s = np.array(np.sum(freezeBool))
                 Long_Freezes_s = np.array(np.sum(longFreezeBool))
-                Freezes_X_s = Pauses_s[:,1]
-                Freezes_Y_s = Pauses_s[:,2]
+                Freezes_X_s = Pauses_s[freezeBool][:,1]
+                Freezes_Y_s = Pauses_s[freezeBool][:,2]
             else:
                 Percent_Moving_s = 0
                 Percent_Paused_s = 0
@@ -360,11 +365,15 @@ for idx,folder in enumerate(folderNames):
                 Freezes_s = 0
                 Long_Freezes_s = 0
                 
+                Pauses_frozen_s = np.zeros(10)
+                
                 Freezes_X_s = 0
                 Freezes_Y_s = 0
              
             # PLot S (maybe)
             if plot and good_fish:
+                # TODO: plot time spent frozen heatmap for this fish
+                # TODO: plot freeze locations from x and y for this fish
                 # plot bout distance vs angle for this fish S
                 plt.figure('scatter')
                 plt.scatter(boutAngles_s,boutDists_s,s=2,color='black',alpha=0.8)
@@ -436,6 +445,8 @@ for idx,folder in enumerate(folderNames):
                      Percent_Moving_S = Percent_Moving_s,
                      Percent_Paused_NS = Percent_Paused_ns,
                      Percent_Paused_S = Percent_Paused_s,
+                     Pauses_Frozen_NS = Pauses_frozen_ns,
+                     Pauses_Frozen_S = Pauses_frozen_s,
                      Freezes_NS = int(Freezes_ns),
                      Freezes_S = int(Freezes_s),
                      Long_Freezes_NS = float(Long_Freezes_ns),
