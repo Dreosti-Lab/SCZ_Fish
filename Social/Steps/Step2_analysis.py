@@ -6,7 +6,7 @@ Analyze all tracked fish in a social preference experiment
 """
 # -----------------------------------------------------------------------------
 # Set "Library Path" - Social Zebrafish Repo
-lib_path = r'S:\WIBR_Dreosti_Lab\Tom\Github\SCZ_Model_Fish\libs'
+lib_path = r'D:\Tom\Github\SCZ_Fish\libs'
 # -----------------------------------------------------------------------------
 
 # Set Library Paths
@@ -229,8 +229,8 @@ for idx,folder in enumerate(folderNames):
                 longFreezeBool=Pauses_ns[:,8] > long_freeze_threshold
                 Freezes_ns = np.array(np.sum(freezeBool))
                 Long_Freezes_ns = np.array(np.sum(longFreezeBool))
-                Freezes_X_ns = Pauses_ns[:,1]
-                Freezes_Y_ns = Pauses_ns[:,2]
+                Freezes_X_ns = Pauses_ns[freezeBool][:,1]
+                Freezes_Y_ns = Pauses_ns[freezeBool][:,2]
             else:
                 Percent_Moving_ns = 0
                 Percent_Paused_ns = 0
@@ -239,8 +239,8 @@ for idx,folder in enumerate(folderNames):
                 Freezes_ns = 0
                 Long_Freezes_ns = 0
                 
-                Freezes_X_ns = 0
-                Freezes_Y_ns = 0
+                Freezes_X_ns = [-1]
+                Freezes_Y_ns = [-1]
 
             # Plot NS (maybe)
             if plot and good_fish:
