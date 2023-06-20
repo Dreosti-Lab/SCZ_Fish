@@ -343,7 +343,7 @@ def plot_VPI_diff(subplotNum,variable,conditionNames,NS_data,S_data,ylim=None,ma
             plt.plot((xd-wid,xd+wid),(yd-ye,yd-ye),color=color)
             plt.plot((xd-wid,xd+wid),(yd+ye,yd+ye),color=color)
             
-        plt.xticks(x, colNames)
+        plt.xticks(x, colNames[15:])
     
     if plotType=='strip':
         plt.subplot(subplotNum[0],subplotNum[1],subplotNum[2])
@@ -410,7 +410,7 @@ def compute_phase_difference(df):
                These represent the two phases.
     :return: A new dataframe with additional columns for the phase differences of each metric.
     """
-    metrics = ['Genotype', 'VPI', 'BPS', 'Distance', 'Percent_Moving', 'Freezes']
+    metrics = ['Genotype', 'VPI', 'Freezes', 'Percent_Moving', 'Distance', 'midCrossings', 'BPS', 'MeanBoutDistance', 'MeanBoutAngle', 'propTurns']
 
     diff_df = pd.DataFrame()  # create a new dataframe to hold the differences
 

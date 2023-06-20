@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import scipy.signal as signal
 import SCZ_analysis as SCZA
-import CV_ARK
 
 
 #-----------------------------------------------------------------------------

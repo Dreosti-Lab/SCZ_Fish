@@ -22,8 +22,8 @@ sys.path.append(lib_path)
 sys.path.append(TR_lib_path)
 
 import BONSAI_ARK
-import AZ_utilities as AZU
-import SZ_utilities as SZU
+# import AZ_utilities as SCZU
+import SCZ_utilities as SCZU
 
 # Utilities for processing videos of Social Experiments
 def drawROI(img,roi,color=[255,255,255],weight=10):
@@ -45,8 +45,8 @@ def drawROI(img,roi,color=[255,255,255],weight=10):
 def process_video_summary_images_TR(folder, social, ROI_path='',saveSummaryVid=True,save=True, endMins = -1):
     
     output_folder=folder+'/ROI_Figures'
-    AZU.cycleMkDir(output_folder)
-    _, S_folder, ROI_folder = SZU.get_folder_names(folder)
+    SCZU.cycleMkDir(output_folder)
+    _, S_folder, ROI_folder = SCZU.get_folder_names(folder)
     aviFiles = glob.glob(S_folder+'/*.avi')
     aviFile = aviFiles[0]
     vid = cv2.VideoCapture(aviFile)
@@ -86,7 +86,7 @@ def process_video_summary_images_TR(folder, social, ROI_path='',saveSummaryVid=T
     S_ROIs=ROI[:, :]
     
     # Pull an image and draw the ROIs
-    img=AZU.grabFrame(aviFile,500)
+    img=SCZU.grabFrame(aviFile,500)
     img=cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     for i in range(0,6):
     
@@ -102,7 +102,7 @@ def process_video_summary_images_TR(folder, social, ROI_path='',saveSummaryVid=T
 
 
      # Read First Frame
-    AZU.setFrame(vid,100)
+    SCZU.setFrame(vid,100)
     ret, im = vid.read()
     previous = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
     width = np.size(previous, 1)
@@ -164,7 +164,7 @@ def process_video_summary_images_TR(folder, social, ROI_path='',saveSummaryVid=T
     
     
     if saveSummaryVid:
-        AZU.setFrame(vid,100)
+        SCZU.setFrame(vid,100)
         ret, im = vid.read()
         previous = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         stepFrames = 500 # Add a background frame every 5 seconds for 600 seconds
@@ -492,7 +492,7 @@ def improved_fish_tracking(input_folder, output_folder, ROIs, report=True, statu
     plt.figure(figsize=(8,6))
     
     # Skip first (sometimes corrupt) 100 frames (1 sec)
-    AZU.setFrame(vid,100)
+    SCZU.setFrame(vid,100)
     for f in range(0,numFrames): 
         # Read next frame        
         ret, im = vid.read()

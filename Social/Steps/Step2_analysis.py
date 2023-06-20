@@ -33,7 +33,8 @@ individual_track_rois = True
 individual_test_rois = True
 individual_cue_rois = True
 if individual_track_rois and individual_test_rois and individual_cue_rois: individual_rois= True
-
+save=True
+keep=False
 # Specify Folder List
 folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/All_cohorts.txt'
 # folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort_missing.txt' 
@@ -42,10 +43,10 @@ folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/A
 # Specify Analysis path
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
 base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
-analysisRoot = base_path + r'/Analysis_MondayMAY/' 
+analysisRoot = base_path + r'/Analysis_MondayMAYEST/' 
 
 # Set Flags
-check = False
+check = True
 plot = True
 resample = True # set to true to force resampling of movies that are not == FPS 
 FPS = 100 
@@ -218,7 +219,7 @@ for idx,folder in enumerate(folderNames):
             boutAngles_ns=boutsMet_ns[:,4]
             good_fish=True
             
-            if len(Bouts_ns) < 1 : good_fish = False
+            if len(Bouts_ns) <= 1: good_fish = False
             if good_fish:
                 Percent_Moving_ns = 100 * np.sum(Bouts_ns[:,8])/len(motion)
                 Percent_Paused_ns = 100 * np.sum(Pauses_ns[:,8])/len(motion)
@@ -344,7 +345,7 @@ for idx,folder in enumerate(folderNames):
             boutAngles_s=boutsMet_s[:,4]
             good_fish=True
             
-            if len(Bouts_s) < 1 : good_fish = False
+            if len(Bouts_s) <= 1 : good_fish = False
             if good_fish:
                 Percent_Moving_s = 100 * np.sum(Bouts_s[:,8])/len(motion)
                 Percent_Paused_s = 100 * np.sum(Pauses_s[:,8])/len(motion)
