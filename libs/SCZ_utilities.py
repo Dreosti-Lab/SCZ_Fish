@@ -28,6 +28,13 @@ import imageio
 from scipy.interpolate import interp1d
 import BONSAI_ARK
 
+def copy_directory_structure(source_dir, dest_dir):
+    for root, dirs, files in os.walk(source_dir):
+        relative_path = os.path.relpath(root, source_dir)
+        new_dir = os.path.join(dest_dir, relative_path)
+        os.makedirs(new_dir, exist_ok=True)
+
+
 # Adjust Orientation (Test Fish)
 def adjust_ort_test(ort, chamber):
     # Adjust orientations so 0 is always pointing towards "other" fish
@@ -1179,6 +1186,51 @@ def read_folder_list(folderListFile):
         folderNames.append(expFolderName)
         
     return data_path,folderNames
+
+def read_folder_list_founders(folderListFile): 
+    folderFile = open(folderListFile, "r") #"r" means read the file
+    folderList = folderFile.readlines() # returns a list containing the lines
+    folderPath = folderList[0][:-1] # Read Data Path which is the first line
+    folderList = folderList[1:] # Remove first line becasue it contains the path
+    
+    # Set Data Path where the experiments are located
+    data_path = folderPath
+    numFolders = len(folderList) 
+    genotype = []
+    fishNum = np.zeros(numFolders)
+    folderNames = [] # We use this becasue we do not know the exact lenght
+
+    
+    for i, f in enumerate(folderList):  # enumerate tells you what folder is 'i'
+        stringLine = f.split()
+        strr = stringLine[0].split(sep='\\')
+        genotype.append(str(strr[0]))
+        fishNum[i] = int(strr[1][-1])
+        expFolderName = data_path + stringLine[0]
+        folderNames.append(expFolderName)
+        
+    return folderPath,genotype, fishNum, folderNames
+
+def read_folder_list_MiSeq(folderListFile): 
+        folderFile = open(folderListFile, "r") #"r" means read the file
+        folderList = folderFile.readlines() # returns a list containing the lines
+        folderPath = folderList[0][:-1] # Read Data Path which is the first line
+        folderList = folderList[1:] # Remove first line becasue it contains the path
+        
+        # Set Data Path where the experiments are located
+        data_path = folderPath
+        numFolders = len(folderList) 
+        genotype=[]
+        fishNum = np.zeros(numFolders)
+        folderNames = [] # We use this becasue we do not know the exact lenght
+        
+        for i, f in enumerate(folderList):  #enumerate tells you what folder is 'i'
+            stringLine = f[:-1].split()
+            genotype.append(str(stringLine[0]))
+            fishNum[i]=int(stringLine[1])
+            expFolderName = data_path + stringLine[2]
+            folderNames.append(expFolderName)
+        return folderPath,genotype, fishNum, folderNames
     
 
 def get_analysis_folders(folder):

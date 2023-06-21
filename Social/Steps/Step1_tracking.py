@@ -6,14 +6,12 @@ Track all fish in a social preference experiment
 """
 # -----------------------------------------------------------------------------
 # Set "Library Path" - Social Zebrafish Repo
-lib_path = r'S:\WIBR_Dreosti_Lab\Tom\Github\Lonely_Fish_TR\Libraries'
-TR_lib_path = r'S:\WIBR_Dreosti_Lab\Tom\Github\Arena_Zebrafish\libs'
+lib_path = r'D:\Tom\Github\SCZ_Fish\libs'
 # -----------------------------------------------------------------------------
 
 # Set Library Paths
 import sys
 sys.path.append(lib_path)
-sys.path.append(TR_lib_path)
 
 # Import useful libraries
 import shutil
@@ -41,7 +39,7 @@ analyze = True
 endMins = 15 # only track the first 15 mins
 
 # Read Folder List
-groups, ages, folderNames, fishStatus, ROI_path = SCZU.read_folder_list(folderListFile)
+groups, ages, folderNames, fishStatus, ROI_path = SCZU.read_folder_list1(folderListFile)
 
 if copy:
     folderNames_orig=folderNames
