@@ -141,16 +141,15 @@ def computeKO_from_Crispresso_singleFolder(CrispressoFolder,threshold=500,report
 
 #%% script
 
-folderListFile='S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Miseq\MiSeq_data\FolderLists\RyanMiseqMay23.txt'
+folderListFile='S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Miseq\MiSeq_data\FolderLists\RyanMiseqJun22.txt'
 founders=False
-zips=False
 
 if founders:
     folderPath, genotypes, fishNums, folderNames = SCZU.read_folder_list_founders(folderListFile) 
     genoSet=set(genotypes)
     saveName=folderPath+'\F1_FounderReport.csv'
 else:
-    folderPath, genotypes, fishNums, folderNames = SCZU.read_folder_list_founders(folderListFile)
+    folderPath, genotypes, fishNums, folderNames = SCZU.read_folder_list_MiSeq(folderListFile)
     saveName=folderPath+'\MiSeq_Report.csv'
     
 # Loop through fish

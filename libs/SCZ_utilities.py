@@ -1202,8 +1202,8 @@ def read_folder_list_founders(folderListFile):
 
     
     for i, f in enumerate(folderList):  # enumerate tells you what folder is 'i'
-        stringLine = f.split()
-        strr = stringLine[0].split(sep='\\')
+        strr = f.split()
+        stringLine = strr[0].split(sep='\\')
         genotype.append(str(strr[0]))
         fishNum[i] = int(strr[1][-1])
         expFolderName = data_path + stringLine[0]
@@ -1225,10 +1225,11 @@ def read_folder_list_MiSeq(folderListFile):
         folderNames = [] # We use this becasue we do not know the exact lenght
         
         for i, f in enumerate(folderList):  #enumerate tells you what folder is 'i'
-            stringLine = f[:-1].split()
+            strr = f.split()
+            stringLine = strr[0].split(sep='\\')
             genotype.append(str(stringLine[0]))
-            fishNum[i]=int(stringLine[1])
-            expFolderName = data_path + stringLine[2]
+            fishNum[i] = int(stringLine[1][-1])
+            expFolderName = data_path + strr[0]
             folderNames.append(expFolderName)
         return folderPath,genotype, fishNum, folderNames
     

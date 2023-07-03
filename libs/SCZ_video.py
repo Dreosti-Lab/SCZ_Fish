@@ -378,12 +378,8 @@ def process_video_summary_images(folder, social):
     return 0
 
 # Compute the initial background for each ROI
-def compute_intial_backgrounds(folder, ROIs):
+def compute_intial_backgrounds(vid, ROIs):
 
-    # Load Video
-    aviFiles = glob.glob(folder+'/*.avi')
-    aviFile = aviFiles[0]
-    vid = cv2.VideoCapture(aviFile)
     numFrames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))-100 # Skip, possibly corrupt, last 100 frames (1 second)
 
     # Allocate space for all ROI backgrounds
@@ -444,11 +440,20 @@ def compute_intial_backgrounds(folder, ROIs):
 #------------------------------------------------------------------------------
 # Process Video : Track fish in AVI
 def improved_fish_tracking(input_folder, output_folder, ROIs, report=True, status=[1,1,1,1,1,1], endMins=-1):
-
+    
+    # Load Video
+    aviFiles = glob.glob(input_folder+'/*.avi')
+    aviFile = aviFiles[0]
+    print('Loading ' + aviFile)
+    import time
+    tic = time.time()
+    vid = cv2.VideoCapture(aviFile)
+    toc = time.time() - tic
+    print('Done loading... took' + str(toc) + ' seconds')
     # Compute a "Starting" Background
     # - Median value of 20 frames with significant difference between them
     print('Finding background')
-    background_ROIs = compute_intial_backgrounds(input_folder, ROIs)
+    background_ROIs = compute_intial_backgrounds(vid, ROIs)
     
     # Algorithm
     # 1. Find initial background guess for each ROI
@@ -459,11 +464,7 @@ def improved_fish_tracking(input_folder, output_folder, ROIs, report=True, statu
     # 6. - Compute Binary Centroid of Body Region (50% of brightest pixels - eyeRegion)
     # 7. - Compute Heading
     
-    # Load Video
-    aviFiles = glob.glob(input_folder+'/*.avi')
-    aviFile = aviFiles[0]
-    print('Processing ' + aviFile)
-    vid = cv2.VideoCapture(aviFile)
+    
     if endMins < 0:
         numFrames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))-100 # Skip, possibly corrupt, last 100 frames (1 second)
     else:
