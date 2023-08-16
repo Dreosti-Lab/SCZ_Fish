@@ -36,9 +36,10 @@ keep=True
 # long_freeze_threshold_seconds=60
 # gene = 'trio'
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
-base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
-analysisRoot = base_path + r'/Analysis_testNew/' 
-folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/testy.txt'
+# base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
+base_path = r'D:\dataToTrack'
+analysisRoot = base_path + r'/Analysis_Summer23/' 
+# folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/testyD.txt'
 # folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort.txt' #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
 
 #%%##### Functions #############

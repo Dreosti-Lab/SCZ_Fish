@@ -36,19 +36,20 @@ if individual_track_rois and individual_test_rois and individual_cue_rois: indiv
 save=True
 keep=False
 # Specify Folder List
-folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/All_cohorts.txt'
-# folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort_missing.txt' 
+# folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\FolderLists\testyD.txt'
+folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort_missing.txt' 
 #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
 
 # Specify Analysis path
+base_path=r'D:/dataToTrack'
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
-base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
-analysisRoot = base_path + r'/Analysis_MondayMAYEST/' 
+# base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
+analysisRoot = base_path + r'/Analysis/' 
 
 # Set Flags
 check = True
 plot = True
-resample = True # set to true to force resampling of movies that are not == FPS 
+resample = False # set to true to force resampling of movies that are not == FPS 
 FPS = 100 
 FPSs=[]
 

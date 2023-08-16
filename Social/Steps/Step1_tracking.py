@@ -21,7 +21,8 @@ import SCZ_utilities as SCZU
 import SCZ_video as SCZV
 
 # Specify Folder List and 
-folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/Cohort/trioMiss.txt'
+folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\FolderLists\testy.txt'
+#folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/Cohort/trioMiss.txt'
 # ROI settings
 individual_track_rois = True
 individual_test_rois = True
@@ -32,16 +33,19 @@ if individual_track_rois and individual_test_rois and individual_cue_rois: indiv
 exp_date=''
 
 # Set Flags
+makeROIFig = True
 copy = False
+copied= True
 preprocess = False
-saveSummaryVid = False
+saveSummaryVid = True
 analyze = True
-endMins = 15 # only track the first 15 mins
+# endMins = 15 # only track the first 15 mins
+endMins = -1 # track whole video
 
 # Read Folder List
 groups, ages, folderNames, fishStatus, ROI_path = SCZU.read_folder_list1(folderListFile)
 
-if copy:
+if copy or copied:
     folderNames_orig=folderNames
     folderNames=[]
     for idx,folder in enumerate(folderNames_orig):
@@ -49,16 +53,22 @@ if copy:
         _,_,_,name=folder.split(sep='\\',maxsplit=3)
         dstt=r'D:\\dataToTrack\\'
         dst=dstt+name
-        print('Copying directory tree from ' + src + ' to new directory at ' + dstt)
-        newDir=shutil.copytree(src, dst)
-        folderNames.append(newDir)
-        
+        if copy:
+            print('Copying directory tree from ' + src + ' to new directory at ' + dstt)
+            newDir=shutil.copytree(src, dst)
+            print('done copying')
+            folderNames.append(newDir)
+        if copied:
+            folderNames.append(dst)
+            
 # Bulk tracking of all folders in Folder List - preprocess first
 if preprocess:
     for idx,folder in enumerate(folderNames):
-        SCZV.process_video_summary_images_TR(folder,False, ROI_path=ROI_path, endMins = endMins, saveSummaryVid=saveSummaryVid)
+        print('Pre-processing videos')
+        SCZV.process_video_summary_images_TR(folder,False, ROI_path=ROI_path, endMins = endMins, saveSummaryVid=saveSummaryVid, makeROIFig = makeROIFig)
         
 if analyze:
+    print('Tracking...')
     for idx,folder in enumerate(folderNames):
         status=fishStatus[idx]
         # Get Folder Names

@@ -5,10 +5,11 @@ Create summary (figures and report) for all analyzed fish in a social preference
 @author: Tom Ryan, UCL (Dreosti-Group) 
 """
 #%% -----------------------------------------------------------------------------
-lib_path = r'S:\WIBR_Dreosti_Lab\Tom\Github\SCZ_Model_Fish\libs'
+lib_path = r'D:\Tom\Github\SCZ_Fish\libs'
 # -----------------------------------------------------------------------------
 
 # Set Library Paths
+print('Importing Libraries from ' + lib_path)
 import sys
 sys.path.append(lib_path)
 # -----------------------------------------------------------------------------
@@ -23,20 +24,21 @@ import scipy.stats as st
 # Import local modules
 import SCZ_utilities as SCZU
 import SCZ_summary as SCZS
-save=False
-keep=True
+import random
+save=True
+keep=False
 # freeze_threshold_seconds=4
 # long_freeze_threshold_seconds=60
 # gene = 'trio'
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
 base_path=r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/AnalysisRounds'
-analysisRoot = base_path + r'/Analysis_Monday/' 
-folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/testy.txt'
+analysisRoot = base_path + r'/Analysis_MondayMAYEST/' 
+folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/All_cohorts.txt'
 # folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort.txt' #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
 
 #%%##### Functions #############
 # kde plots
-
+print('Importing functions')
 def kde (x,y,xrange,yrange,msize):
     xx, yy = np.mgrid[xrange[0]:xrange[1]:msize, yrange[0]:yrange[1]:msize]
     xx, yy = np.mgrid[xrange[0]:xrange[1]:msize, yrange[0]:yrange[1]:msize]
@@ -441,6 +443,7 @@ def plotSummaryOrtHistograms(OrtHist_NS_NSS_ALL,OrtHist_NS_SS_ALL,OrtHist_S_NSS_
         return -1,-1,-1,-1
 
 #%%######### SCRIPT - Prepare data, gene lists and paths #############
+print('Running through videos to check FPS and everything is there')
 groups, num, folderNames, fishStatus, ROI_path = SCZU.read_folder_list1(folderListFile)
 # Create a list of unique genes from the folderListFile, to analyse in sequence
 FPSs=[]
@@ -467,6 +470,7 @@ for idx,folder in enumerate(folderNames):
             FPSs.append(currentFPS)
 
 #%% loop through tested genes (Collect all data)
+print('Collecting Data')
 for gene in geneList:
     analysisFolder = analysisRoot + gene
     # Find all the npz files saved for each group and fish with all the information
@@ -1122,20 +1126,60 @@ for gene in geneList:
     Angles_NS_ALL,Dists_NS_ALL,Angles_S_ALL,Dists_S_ALL = [],[],[],[]
     # remove outliers from NS
     for xi, angle in enumerate(Angles_NS_temp):
-        if np.abs(angle)<270 and Dists_NS_temp[xi] > 7 and Dists_NS_temp[xi] <300: 
+        if np.abs(angle)<270 and Dists_NS_temp[xi] > 7 and Dists_NS_temp[xi] <200: 
             Angles_NS_ALL.append(angle)
             Dists_NS_ALL.append(Dists_NS_temp[xi])
     # remove outliers from S
     for xi, angle in enumerate(Angles_S_temp):
-        if np.abs(angle)<270 and Dists_S_temp[xi] > 7 and Dists_S_temp[xi] <300: 
+        if np.abs(angle)<200 and Dists_S_temp[xi] > 7 and Dists_S_temp[xi] <200: 
             Angles_S_ALL.append(angle)
             Dists_S_ALL.append(Dists_S_temp[xi])
     
+    # take random sample of 10 thousand so as not to overpopulate the plot
+    angles_samp_ns = random.sample(Angles_NS_ALL, 25000)
+    angles_samp_s = random.sample(Angles_S_ALL, 25000)
+    dists_samp_ns = random.sample(Dists_NS_ALL, 25000)
+    dists_samp_s = random.sample(Dists_S_ALL, 25000)
+    ylim=(0,60)
+    xlim=(-160,160)
+    #plot random samples
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_Sample.png'
+    plt.figure('Scatter Sample NS')
+    plt.scatter(angles_samp_ns,dists_samp_ns,s=2,color='black',alpha=0.05)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    if save:
+        plt.savefig(filename,dpi=600)
+    if keep==False:
+        plt.close()
+        
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_S_Sample.png'
+    plt.figure('Scatter Sample S')
+    plt.scatter(angles_samp_s,dists_samp_s,s=2,color='black',alpha=0.05)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    if save:
+        plt.savefig(filename,dpi=600)
+    if keep==False:
+        plt.close()
+        
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_Sample.png'
+    plt.figure('Scatter Sample All vs')
+    plt.scatter(angles_samp_ns,dists_samp_ns,s=2,color='black',alpha=0.02)
+    plt.scatter(angles_samp_s,dists_samp_s,s=2,color='magenta',alpha=0.02)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+    if save:
+        plt.savefig(filename,dpi=600)
+    if keep==False:
+        plt.close()
+    
+    # plot everything
     filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_ALL.png'
     plt.figure('Scatter All NS')
-    plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.1)
-    plt.xlim(-200,200)
-    plt.ylim(-10,200)
+    plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.01)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
     if save:
         plt.savefig(filename,dpi=600)
     if keep==False:
@@ -1143,9 +1187,9 @@ for gene in geneList:
         
     filename = analysisFolder + '/' + gene + '_AngleVsDist_S_ALL.png'
     plt.figure('Scatter All S')
-    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='black',alpha=0.1)
-    plt.xlim(-200,200)
-    plt.ylim(-10,200)
+    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='black',alpha=0.01)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
     if save:
         plt.savefig(filename,dpi=600)
     if keep==False:
@@ -1153,10 +1197,10 @@ for gene in geneList:
         
     filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_ALL.png'
     plt.figure('Scatter All vs')
-    plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.1)
-    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='magenta',alpha=0.05)
-    plt.xlim(-200,200)
-    plt.ylim(-10,200)
+    plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.01)
+    plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='magenta',alpha=0.01)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
     if save:
         plt.savefig(filename,dpi=600)
     if keep==False:
@@ -1294,17 +1338,17 @@ for gene in geneList:
     
     # KDE plots
     # Freeze Locations ALL KDE
-    # filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_ALL.png'
-    # title='Freeze Location Summary ALL KDE' + str(gene)
-    # kdeplot(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title=title,save=save,keep=keep)
+    filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_ALL.png'
+    title='Freeze Location Summary ALL KDE' + str(gene)
+    kdeplot(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title=title,save=save,keep=keep)
     
-    # # Freeze Locations COHORTS KDE
-    # for i in range(num_cohorts):
-    #     filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_COHORT_' + str(i+1) + '.png'
-    #     title='Freeze Location Summary COHORT KDE' + str(i+1) + ' ' + str(gene)
-    #     Pauses_Frozen_NS=Pauses_Frozen_NS_COHORT_list[i]
-    #     Pauses_Frozen_S=Pauses_Frozen_S_COHORT_list[i]
-    #     kdeplot(Pauses_Frozen_NS,Pauses_Frozen_S,savename=filename,title=title,save=save,keep=keep)
+    # Freeze Locations COHORTS KDE
+    for i in range(num_cohorts):
+        filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_COHORT_' + str(i+1) + '.png'
+        title='Freeze Location Summary COHORT KDE' + str(i+1) + ' ' + str(gene)
+        Pauses_Frozen_NS=Pauses_Frozen_NS_COHORT_list[i]
+        Pauses_Frozen_S=Pauses_Frozen_S_COHORT_list[i]
+        kdeplot(Pauses_Frozen_NS,Pauses_Frozen_S,savename=filename,title=title,save=save,keep=keep)
     
     # ----------------
     # Long Pauses Summary Plot
@@ -1366,7 +1410,7 @@ for gene in geneList:
     # Create a list of Cohort numbers so you can color the points
     # VPI
     # colors=[[0.75,0,0,0.6],[0,0,0.75,0.6],[0,0.75,0,0.6],[0.75,0.75,0,0.6]]
-    num_colors = 8
+    num_colors = len(geneList)
 
     # Create an array of evenly spaced values between 0 and 1
     values = np.linspace(0, 1, num_colors)
