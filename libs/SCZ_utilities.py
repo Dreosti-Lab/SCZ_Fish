@@ -6,11 +6,11 @@ Created on Sun Nov 03 09:21:29 2019
 """
 # -----------------------------------------------------------------------------
 
-lib_path =r'S://WIBR_Dreosti_Lab//Tom//Github//SCZ_Model_Fish//libs'
+# lib_path =r'S://WIBR_Dreosti_Lab//Tom//Github//SCZ_Model_Fish//libs'
 import math
 # Set Library Paths
-import sys
-sys.path.append(lib_path)
+# import sys
+# sys.path.append(lib_path)
 # -----------------------------------------------------------------------------
 
 # Import useful libraries
