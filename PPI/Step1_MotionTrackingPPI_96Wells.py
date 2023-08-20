@@ -156,6 +156,14 @@ def interp_series_every_n_points(trace, interval=12):
     interpTrace = np.interp(np.arange(len(trace)), indices, trace[indices])
     return interpTrace
 
+def grab_stim_times(folder):
+    csvs=glob.glob(folder+r'/*.csv')
+    left=[item for item in csvs if "parameters" not in item]
+    stim_path=[item for item in left if "motionTraces" not in item]
+    csv=pd.read_csv(stim_path,header=None)
+    stim_frames=csv[0]
+    return stim_frames
+
 #%%    
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -166,8 +174,8 @@ if __name__ == "__main__":
     makeMotionTrace = True
     trackXY=False
     makeMovie=False
-    folderListFile=r'D:\dataToTrack\Habituation\FolderLists\Habituation_1000K.txt'
-    
+    # folderListFile=r'D:\dataToTrack\Habituation\FolderLists\Habituation_1000K_cont.txt'
+    folderListFile=r'D:\dataToTrack\PPITrial\FolderLists\PPITrials.txt'
     data_path,folderNames=PPIU.read_folder_list(folderListFile)
     # folderNames=[r'D:\dataToTrack\Habituation\Plate_1\Amp_1500000\Exp1_ISI_1s']
     
@@ -177,31 +185,35 @@ if __name__ == "__main__":
         print(f'Processing video {n} out of {N}')
         n+=1
         movie_path=glob.glob(folder+r'/*.avi')[0]
-        csvs=glob.glob(folder+r'/*.csv')
-        parameter_path=[item for item in csvs if "params" in item][0]
-        stim_path=[item for item in csvs if "params" not in item][0]
+        stimFrames=grab_stim_times(folder)
+        num_stim=len(stimFrames)
         
+        vid = cv2.VideoCapture(movie_path) 
+        numFrames=int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        max_stims=16
+        if max_stims<num_stim:
+            max_frames=stimFrames[max_stims]
+        else:
+            max_frames=numFrames
+            
         # ROI_TL=[16,36,79,74]
         # ROI_BR=[968,649,85,86]
         ROI_TL,ROI_BR=PPIU.load_TLBR_ROIs(folder)
-        
-        vid = cv2.VideoCapture(movie_path) 
-        max_frames=12000
         
         vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
         ret,first_frame=vid.read()
         rois=PPIU.create_roi_grid_from_corners(ROI_TL,ROI_BR, num_rows=8, num_cols=12)
         test_roi_grid(first_frame, rois)
         
-        numFrames=int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
         numROIs=len(rois)
         
         if makeMotionTrace:
-            print(f'Computing traces from {numROIs} ROIs, video is {numFrames} frames long')
+            print(f'Computing traces from {numROIs} ROIs, video is {numFrames} frames long before cropping {num_stim} stimuli down to {max_stims}, we will stop at {max_frames}.')
             brightness,traces,diff_frame_movie = generate_motion_trace(vid, rois, diffThresh=12, max_frames=max_frames, makeMovie=makeMovie)
             print('Saving traces as ' + data_path + r'/motionTraces.csv')
             df = pd.DataFrame(np.array(traces))
-            df.to_csv(data_path+r'/motionTraces.csv')
+            df.to_csv(folder+r'/motionTraces.csv')
             
         if makeMovie:
             print('Saving diff video')
@@ -228,5 +240,7 @@ if __name__ == "__main__":
         
         # Close video
         vid.release()
+        
+    # End folder loop
     print('FIN')
     

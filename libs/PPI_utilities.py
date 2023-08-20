@@ -10,6 +10,7 @@ import sys
 sys.path.append(lib_path)
 
 import cv2
+import glob
 import numpy as np
 import SCZ_utilities as SCZU
 import SCZ_video as SCZV
@@ -28,7 +29,7 @@ def create_roi_grid_from_corners(top_left_roi, bottom_right_roi, num_rows=8, num
             x = top_left_x + col * x_spacing
             y = top_left_y + row * y_spacing
             rois.append((int(x), int(y), int(roi_width), int(roi_height)))
-            return rois
+    return rois
 
 def read_folder_list(folderListFile): 
 ## Read Folder List file 
