@@ -89,9 +89,9 @@ def PPI_96well_fishtracking(vid, tracking_folder, ROIs, report=True, status=[1,1
                         
         # Process each ROI
         for i in range(0,numROIs):
-            if f==424 and i == 94:
-                print('debug')
-                print(f'ROI: {i}')
+            # if f==424 and i == 94:
+            #     print('debug')
+            #     print(f'ROI: {i}')
             crop, xOff, yOff = get_ROI_crop(current, ROIs, i)
             crop_height, crop_width = np.shape(crop)
             
@@ -468,7 +468,7 @@ def process_video_summary_images_TR(folder, social, ROI_path='',saveSummaryVid=T
             backgroundStack[:,:,bCount] = current
             bCount = bCount + 1
         
-        print (f/numFrames)
+        # print (f/numFrames)
     norm_max=np.max(accumulated_diff)
     # Normalize accumulated difference image
     accumulated_diff = accumulated_diff/np.max(norm_max)
@@ -574,7 +574,7 @@ def pre_process_video_summary_images(folder, social, saveSummaryVid=True):
             backgroundStack[:,:,bCount] = current
             bCount = bCount + 1
         
-        print (numFrames-f)
+        # print (numFrames-f)
 #        print (bCount)
 
     vid.release()
@@ -797,7 +797,7 @@ def compute_initial_backgrounds(vid, ROIs):
             previous = np.copy(crop)
             
             # If significant, add to stack...possible finish
-            print(change)
+            # print(change)
             if(change > 0.0075):
                 backgroundStack[:,:,bCount] = np.copy(crop)
                 bCount = bCount + 1
@@ -822,7 +822,7 @@ def improved_fish_tracking(input_folder, output_folder, ROIs, report=True, statu
     tic = time.time()
     vid = cv2.VideoCapture(aviFile)
     toc = time.time() - tic
-    print('Done loading... took' + str(toc) + ' seconds')
+    print('Done loading... took ' + str(toc) + ' seconds')
     # Compute a "Starting" Background
     # - Median value of 20 frames with significant difference between them
     print('Finding background')
@@ -872,7 +872,7 @@ def improved_fish_tracking(input_folder, output_folder, ROIs, report=True, statu
         ret, im = vid.read()
         if not ret:
             continue
-        print(str(f/numFrames))
+        # print(str(f/numFrames))
         # Convert to grayscale (uint8)
         current = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
                         

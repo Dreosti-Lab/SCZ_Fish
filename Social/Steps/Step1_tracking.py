@@ -15,13 +15,15 @@ sys.path.append(lib_path)
 
 # Import useful libraries
 import shutil
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import SCZ_utilities as SCZU
 import SCZ_video as SCZV
 
 # Specify Folder List and 
-folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\FolderLists\testy.txt'
+folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\230831_LastTracking_grin_Part2.txt'
+# folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\230831_LastTracking_part2.txt'
 #folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/Cohort/trioMiss.txt'
 # ROI settings
 individual_track_rois = True
@@ -33,11 +35,11 @@ if individual_track_rois and individual_test_rois and individual_cue_rois: indiv
 exp_date=''
 
 # Set Flags
-makeROIFig = True
+makeROIFig = False
 copy = False
-copied= True
+copied= False
 preprocess = False
-saveSummaryVid = True
+saveSummaryVid = False
 analyze = True
 # endMins = 15 # only track the first 15 mins
 endMins = -1 # track whole video
@@ -53,20 +55,23 @@ if copy or copied:
         _,_,_,name=folder.split(sep='\\',maxsplit=3)
         dstt=r'D:\\dataToTrack\\'
         dst=dstt+name
-        if copy:
+        if copied and not copy:
+            folderNames.append(dst)
+        if copy and not copied:
             print('Copying directory tree from ' + src + ' to new directory at ' + dstt)
             newDir=shutil.copytree(src, dst)
             print('done copying')
             folderNames.append(newDir)
-        if copied:
-            folderNames.append(dst)
+        
             
 # Bulk tracking of all folders in Folder List - preprocess first
 if preprocess:
     for idx,folder in enumerate(folderNames):
         print('Pre-processing videos')
+        tic=time.time()
         SCZV.process_video_summary_images_TR(folder,False, ROI_path=ROI_path, endMins = endMins, saveSummaryVid=saveSummaryVid, makeROIFig = makeROIFig)
-        
+        toc = time.time() - tic
+        print('Done preprocessing... took ' + str(toc) + ' seconds')
 if analyze:
     print('Tracking...')
     for idx,folder in enumerate(folderNames):
@@ -81,8 +86,10 @@ if analyze:
         output_folder=NS_folder + '/Figures'
         SCZU.cycleMkDir(output_folder)
         print('Processing Non-Social fish ' + folder)
+        tic=time.time()
         fxS, fyS, bxS, byS, exS, eyS, areaS, ortS, motS = SCZV.improved_fish_tracking(NS_folder, output_folder, track_ROIs, report=report, status=status, endMins=endMins)
-        
+        toc = time.time() - tic
+        print('Done processing... took ' + str(toc) + ' seconds')
         # Save Tracking (NS)
         for i in range(0,6):
             # Save NS
@@ -97,8 +104,11 @@ if analyze:
         output_folder=S_folder + '/Figures'
         SCZU.cycleMkDir(output_folder)
         print('Processing Social fish')
+        tic=time.time()
         # fxS, fyS, bxS, byS, exS, eyS, tailSegXS,tailSegYS,areaS, ortS, motS, failedAviFiles, errF = SCZV.arena_fish_tracking(aviFile, figureDirPath, track_ROIs, plot=1, cropOp=1, FPS=FPS, larvae=False)
         fxS, fyS, bxS, byS, exS, eyS, areaS, ortS, motS = SCZV.improved_fish_tracking(S_folder, output_folder, track_ROIs, report=report,status=status, endMins=endMins)
+        toc = time.time() - tic
+        print('Done processing... took ' + str(toc) + ' seconds')
     
         # Save Tracking (S)
         for i in range(0,6):

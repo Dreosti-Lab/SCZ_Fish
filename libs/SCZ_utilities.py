@@ -61,7 +61,7 @@ def get_folder_names(folder):
     # Specifiy Folder Names
     NS_folder = folder + r'\NonSocial'
     S_folder = folder + r'\Social'
-    ROI_folder = folder + r'\ROIs'
+    ROI_folder = folder + r'\\ROIs'
 
     if os.path.exists(ROI_folder) == False:
         ROI_folder = -1    
