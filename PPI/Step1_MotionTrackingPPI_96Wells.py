@@ -37,9 +37,8 @@ def test_roi_grid(im, rois):
     cv2.waitKey(5000)
     cv2.destroyAllWindows()
 
-def generate_motion_trace(vid, rois, max_frames=-1, diffThresh=5, num_rois=None, start_roi=None, makeMovie=True):
-    
-    num_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))-1
+def generate_motion_trace(vid, rois, num_frames, max_frames=-1, diffThresh=5, num_rois=None, start_roi=None, makeMovie=True):
+        
     if max_frames > 0 and max_frames < num_frames:
         num_frames = max_frames
     else:
@@ -59,9 +58,11 @@ def generate_motion_trace(vid, rois, max_frames=-1, diffThresh=5, num_rois=None,
 
     prev_frame = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
     diff_frame_movie=[]
-    for i in range(num_frames):
-        ret, frame = vid.read()
-
+    i=-1
+    # Open first frame
+    ret, frame = vid.read()
+    while ret: # changed this loop from a num_frames loop due to occasional corruption leading to lost metadata in movie.
+        i+=1
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         diff_frame = cv2.absdiff(gray_frame, prev_frame)
         diff_frame[diff_frame < diffThresh] = 0
@@ -85,7 +86,8 @@ def generate_motion_trace(vid, rois, max_frames=-1, diffThresh=5, num_rois=None,
         if (i + 1) % 1000 == 0:
             percentage_completion = ((i + 1) / num_frames) * 100
             print(f"Processing {percentage_completion:.0f}% complete...")
-
+        # Load next frame
+        ret, frame = vid.read()
     vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
     return brightness_array,motion_trace_array, diff_frame_movie
 
@@ -159,7 +161,7 @@ def interp_series_every_n_points(trace, interval=12):
 def grab_stim_times(folder):
     csvs=glob.glob(folder+r'/*.csv')
     left=[item for item in csvs if "parameters" not in item]
-    stim_path=[item for item in left if "motionTraces" not in item]
+    stim_path=[item for item in left if "motionTraces" not in item][0]
     csv=pd.read_csv(stim_path,header=None)
     stim_frames=csv[0]
     return stim_frames
@@ -175,33 +177,47 @@ if __name__ == "__main__":
     trackXY=False
     makeMovie=False
     # folderListFile=r'D:\dataToTrack\Habituation\FolderLists\Habituation_1000K_cont.txt'
-    folderListFile=r'D:\dataToTrack\PPITrial\FolderLists\PPITrials.txt'
+    folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\PPITrial\FolderLists\PPI_Tracking_230831.txt'
     data_path,folderNames=PPIU.read_folder_list(folderListFile)
     # folderNames=[r'D:\dataToTrack\Habituation\Plate_1\Amp_1500000\Exp1_ISI_1s']
     
     n=1
     N=len(folderNames)
-    for folder in folderNames:
+    for kk,folder in enumerate(folderNames):
+        if kk==0:
+            continue
         print(f'Processing video {n} out of {N}')
         n+=1
         movie_path=glob.glob(folder+r'/*.avi')[0]
-        stimFrames=grab_stim_times(folder)
-        num_stim=len(stimFrames)
+        stim_frames=grab_stim_times(folder)
+        stim_frames=stim_frames[1:]
+        num_stim=len(stim_frames)
         
         vid = cv2.VideoCapture(movie_path) 
-        numFrames=int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+        num_frames=int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        max_stims=16
+        if num_frames==0:
+            # then we have lost metadata... we have to loop through the movie frames and count them... no other way
+            print('Missing metadata, check your movies. Counting frames...')
+            ret,_=vid.read()
+            num_frames=1
+            while ret:
+                ret,_=vid.read()
+                num_frames+=1
+            print(f'Finished counting, there are {num_frames} frames')
+            vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        
+        max_stims=27
         if max_stims<num_stim:
-            max_frames=stimFrames[max_stims]
+            max_frames=stim_frames[max_stims]
         else:
-            max_frames=numFrames
+            max_frames=num_frames
             
         # ROI_TL=[16,36,79,74]
         # ROI_BR=[968,649,85,86]
         ROI_TL,ROI_BR=PPIU.load_TLBR_ROIs(folder)
         
-        vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        
         ret,first_frame=vid.read()
         rois=PPIU.create_roi_grid_from_corners(ROI_TL,ROI_BR, num_rows=8, num_cols=12)
         test_roi_grid(first_frame, rois)
@@ -209,9 +225,10 @@ if __name__ == "__main__":
         numROIs=len(rois)
         
         if makeMotionTrace:
-            print(f'Computing traces from {numROIs} ROIs, video is {numFrames} frames long before cropping {num_stim} stimuli down to {max_stims}, we will stop at {max_frames}.')
-            brightness,traces,diff_frame_movie = generate_motion_trace(vid, rois, diffThresh=12, max_frames=max_frames, makeMovie=makeMovie)
-            print('Saving traces as ' + data_path + r'/motionTraces.csv')
+            print(f'Computing traces from {numROIs} ROIs, video is {num_frames} frames long before cropping {num_stim} stimuli down to {max_stims}, we will stop at {max_frames}.')
+            vid.set(cv2.CAP_PROP_POS_FRAMES, 0) # in case of debugging and shenanigans
+            brightness,traces,diff_frame_movie = generate_motion_trace(vid, rois, num_frames, diffThresh=12, max_frames=max_frames, makeMovie=makeMovie)
+            print('Saving traces as ' + folder + r'/motionTraces.csv')
             df = pd.DataFrame(np.array(traces))
             df.to_csv(folder+r'/motionTraces.csv')
             
@@ -222,7 +239,7 @@ if __name__ == "__main__":
         if trackXY:
             print('Tracking fishes... May take some time...')
             roi_array=np.array(rois)
-            trackingFolder=data_path+r'/Tracking'
+            trackingFolder=folder+r'/Tracking'
             SCZU.cycleMkDir(trackingFolder)
             FigFolder=trackingFolder+r'/Figures'
             SCZU.cycleMkDir(FigFolder)
@@ -231,7 +248,7 @@ if __name__ == "__main__":
             
             for i in range(0,fxS.shape[1]):
                 filename = trackingFolder + r'/tracking' + str(i+1) + r'.npz'
-                fish = np.vstack((fxS[:,i], fyS[:,i], bxS[:,i], byS[:,i], exS[:,i], eyS[:,i], areaS[:,i], ortS[:,i], motS[:,i]))
+                fish = np.vstack((fxS[:,i], fyS[:,i], bxS[:,i], byS[:,i], exS[:,i], eyS[:,i], areaS[:,i], ortS[:,i], motS[:,i], distS[:,i]))
                 print(f'Saving tracking at {filename}')
                 np.savez(filename, tracking=fish.T)
         
