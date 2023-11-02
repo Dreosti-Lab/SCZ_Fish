@@ -22,7 +22,7 @@ import SCZ_utilities as SCZU
 # Collection of functions and scripts to analyse MiSeq data from Schizophrenia 
 
 
-def computeKO_from_Crispresso_single(CrispressoFolder,threshold=500,report=False):
+def computeKO_from_Crispresso_single(CrispressoFolder,threshold=500,report=False, del_thresh=20):
     """
     Compute KO alleles from Crispresso single output.
 
@@ -69,7 +69,7 @@ def computeKO_from_Crispresso_single(CrispressoFolder,threshold=500,report=False
                 num_deletions = row['n_deleted']
     
                 # Check conditions for 'PropKO'
-                if (abs(num_insertions - num_deletions) % 3 != 0) or (abs(num_insertions) > 20) or (abs(num_deletions) > 20):
+                if (abs(num_insertions - num_deletions) % 3 != 0) or (abs(num_insertions) > del_thresh) or (abs(num_deletions) > del_thresh):
                     prop_ko += row['%Reads']
                     mut_allele_count += 1
         else:
@@ -165,7 +165,7 @@ for idx,folder in enumerate(folderNames):
     zipFlag=True
     guideZips=glob.glob(folder+'\\*.zip')
     if len(guideZips)==0:
-        guideZips=glob.glob(folder+'\\CRISPResso_Report*')
+        guideZips=glob.glob(folder+'\\CRISPResso_*')
         zipFlag=False
     for idg,guideZip in enumerate(guideZips):
         # loop through guides
