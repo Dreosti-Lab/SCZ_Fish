@@ -8,6 +8,7 @@
 # -----------------------------------------------------------------------------
 # Import useful libraries
 import os
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -66,6 +67,45 @@ def plotSummaryBouts(ns,s,filename,title,save=True,keep=False):
     return axes
 
     # -------------------------------------------------------------------------
+def plotSummaryBoutLocationsSample(ns, s, filename, title, sample_size=None, save=True, keep=False, alpha=0.1, markersize=5):
+    # If sample_size is specified, randomly sample data
+    if sample_size is not None:
+        # Check if the sample_size is valid
+        if sample_size <= 0:
+            raise ValueError("Sample size must be a positive integer.")
+        
+        # Randomly sample data
+        random_indices_ns = random.sample(range(len(ns)), sample_size)
+        random_indices_s = random.sample(range(len(s)), sample_size)
+        ns = ns[random_indices_ns]
+        s = s[random_indices_s]
+
+    # All Bouts Summary Plot
+    plt.figure()
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.subplot(1, 2, 1)
+    plt.title('NonSocial Phase')
+    plt.plot(ns[:, 1], ns[:, 2], '.', color=[0.0, 0.0, 0.0, alpha], markersize=markersize)
+    plt.axis([0, 17, 0, 42])
+    plt.gca().invert_yaxis()
+        
+    plt.subplot(1, 2, 2)
+    plt.title('Social Phase')
+    plt.plot(s[:, 1], s[:, 2], '.', color=[0.0, 0.0, 0.0, alpha], markersize=markersize)
+    plt.axis([0, 17, 0, 42])
+    plt.gca().invert_yaxis()
+    plt.suptitle(title)
+    
+    if save:
+        plt.savefig(filename, dpi=600)
+    if not keep:
+        plt.close()
+        axes = -1
+    else:
+        axes = plt.gca
+
+    return axes
+
 def plotSummaryBoutLocations(ns,s,filename,title,save=True,keep=False,alpha=0.2):
     # All Bouts Summary Plot
     plt.figure()
@@ -91,6 +131,7 @@ def plotSummaryBoutLocations(ns,s,filename,title,save=True,keep=False,alpha=0.2)
     else:
         axes=plt.gca
     return axes
+
 # Compute activity level of the fish in bouts per second (BPS)
 def measure_BPS(motion, startThreshold, stopThreshold):
                    

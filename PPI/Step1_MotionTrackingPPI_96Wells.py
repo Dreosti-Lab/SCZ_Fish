@@ -177,15 +177,15 @@ if __name__ == "__main__":
     trackXY=False
     makeMovie=False
     # folderListFile=r'D:\dataToTrack\Habituation\FolderLists\Habituation_1000K_cont.txt'
-    folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\PPITrial\FolderLists\PPI_Tracking_230831.txt'
+    folderListFile='S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/Data/FolderLists/PPI_Tracking_230928_all_minAmp_strag.txt'
+    # folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\FolderLists\PPI_Tracking_230928_grin2a.txt'
+    # folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\PPITrial\FolderLists\PPI_Tracking_230831.txt'
     data_path,folderNames=PPIU.read_folder_list(folderListFile)
     # folderNames=[r'D:\dataToTrack\Habituation\Plate_1\Amp_1500000\Exp1_ISI_1s']
     
     n=1
     N=len(folderNames)
     for kk,folder in enumerate(folderNames):
-        if kk==0:
-            continue
         print(f'Processing video {n} out of {N}')
         n+=1
         movie_path=glob.glob(folder+r'/*.avi')[0]
