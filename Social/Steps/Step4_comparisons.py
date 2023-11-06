@@ -4,6 +4,7 @@ Compare summaries of analyzed social preference experiments
 
 @author: Tom Ryan, UCL (Dreosti-Group) 
 """
+#%% Collect and save data
 # -----------------------------------------------------------------------------
 lib_path = r'D:\Tom\Github\SCZ_Fish\libs'
 # -----------------------------------------------------------------------------
@@ -12,7 +13,7 @@ lib_path = r'D:\Tom\Github\SCZ_Fish\libs'
 import sys
 sys.path.append(lib_path)
 # -----------------------------------------------------------------------------
-#%% Collect and save data
+
 # Set Library Paths
 import sys
 sys.path.append(lib_path)
@@ -28,11 +29,12 @@ import glob
 
 # Set "Base Path" for this analysis session
 base_path=r'D:/dataToTrack/'
-base_path = base_path + r'/Final_Social_SCZ_Analysis/' 
-date = '230918'
+base_path = base_path + r'/Final_Social_SCZ_Analysis_FINALVPI/' 
+date = '231011'
 folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_FINAL.txt'
 # OR set path to saved dataframe (ALL)
 path=None
+# path = base_path + r'/Analysis/'
 # path=r'C:/Users/Tom/'
 saveDataframe=True
 turnThresh=9.75 # degrees to consider a "turn" vs forward swim
@@ -59,15 +61,16 @@ else:
     genes=[]
     genes.append(r'Scrambled')
     genes.append(r'trio')
-    genes.append(r'xpo7')
-    genes.append(r'sp4')
     genes.append(r'gria3')
     genes.append(r'grin2a')
     genes.append(r'cacna1g')
+    genes.append(r'sp4') 
+    genes.append(r'xpo7')
+    genes.append(r'akap11')    
+    genes.append(r'herc1')  
     genes.append(r'hcn4')
     genes.append(r'nr3c2')
-    genes.append(r'akap11')    
-    genes.append(r'herc1')    
+      
     
 #==============================================================================
     conditionNames=genes
@@ -76,7 +79,7 @@ else:
     for gene in genes:
         analysisFolders.append(base_path + r'/' + gene)
     
-    VPI_Thresh=0.9
+    VPI_Thresh=0.8
     # Summary Containers
     VPI_NS_summary = []
     VPI_S_summary = []
@@ -108,6 +111,7 @@ else:
     AllFish=[]
     AllFish_scram=[]
     AllFish_cond=[]
+    NFISH=[]
     for i, analysisFolder in enumerate(analysisFolders):
         
         # Freeze time threshold
@@ -159,7 +163,7 @@ else:
         boutDists_NS_ALL = []
         boutDists_S_ALL = []
         # Go through all the files contained in the analysis folder
-        
+        NFISH.append(len(npzFiles))
         print('Going through ' + str(len(npzFiles)) + ' files for ' + str(genes[i]))
         count=0
         for f, filename in enumerate(npzFiles):
@@ -383,15 +387,407 @@ else:
         dfIQR.to_pickle("All_SCZ_Fish_IQR_" + date + ".pkl")
         bouts_df.to_pickle("All_SCZ_Fish_Bouts_" + date)
         print('saved dataframes')
-# %% Stats
+# Stats
 dfStats=dfAll.copy()
 excList=['boutAngles_NS','boutAngles_S','boutDists_NS','boutDists_S']
 for exc in excList:
     dfStats=dfStats.drop(exc,axis=1)
 MannW_results_all_corr = SCZA.mann_whitney_all_vs_scrambled(dfStats)
 
+#%% Functions
+def heatmapBehaviour(df, MannW_results_all_corr, figname=None, vmin=-1.8, vmax=1.8, col='Spectral_r', sort=False, genotype_order=None, behaviour_order=None):
+    if genotype_order is None:
+        genotype_order = df['Genotype'].unique()
+
+    if behaviour_order is None:
+        behaviour_order = df.columns
+
+    # Use the specified behavior_order index list
+    df_GeneMean = df.groupby('Genotype').mean()
+    # df_GeneMean = df_GeneMean.reindex(columns=[behaviour_order[i] for i in behaviour_order], axis=1)
+    df_GeneMean=df_GeneMean.drop('Scrambled')
+    df_GeneMean = df_GeneMean.loc[genotype_order]
+    df_GeneMean = df_GeneMean.iloc[:, behaviour_order]
+    
+    MannW_results_all_corr.Column = pd.Categorical(MannW_results_all_corr.Column, categories=MannW_results_all_corr.Column.unique(), ordered=True)    
+    MannW_results_all_corr = MannW_results_all_corr.pivot(index='Genotype', columns='Column', values='pvalue_corr')
+    MannW_results_all_corr = MannW_results_all_corr.loc[genotype_order]
+    df_pivot = MannW_results_all_corr.iloc[:,behaviour_order]
+    
+    plt.figure(figname, figsize=(12, 6))
+
+    # Define a colormap
+    cmap = plt.get_cmap(col)
+
+    # Normalize the data
+    norm = plt.Normalize(vmin=vmin, vmax=vmax)
+
+    ax = plt.gca()
+
+    # Create the heatmap
+    im = ax.imshow(df_GeneMean, cmap=cmap, norm=norm)
+
+    # Display colorbar
+    cbar = ax.figure.colorbar(im, ax=ax)
+
+    # Set labels
+    ax.set_xticks(np.arange(df_GeneMean.shape[1]))
+    ax.set_yticks(np.arange(df_GeneMean.shape[0]))
+    ax.set_xticklabels(df_GeneMean.columns)
+    ax.set_yticklabels(genotype_order)
+
+    # Rotate the tick labels and set their alignment
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    
+    # df_pivot = pd.pivot_table(MannW_results_all_corr_sort, values='pvalue_corr', index=['Genotype'], columns=['Column'])
+    
+    for i in range(df_GeneMean.shape[0]):
+        for j in range(df_GeneMean.shape[1]):
+            value = df_pivot.iloc[i, j]
+            if value < 0.001:
+                ax.text(j, i, "**", ha="center", va="center", color='black', fontweight='bold')
+            elif value < 0.01:
+                ax.text(j, i, "*", ha="center", va="center", color='black', fontweight='bold')
+            elif value < 0.05:
+                ax.text(j, i, "*", ha="center", va="center", color='black', fontweight='bold')
+
+    return ax
 
 
+def heatmapBehaviour1(df,MannW_results_all_corr,figname=None,vmin=-1.8,vmax=1.8,col='Spectral_r',sort=False): #diff=True add if trying experimental sorting
+    df_GeneMean=df.groupby('Genotype').mean()
+    plt.figure(figname)
+    
+    # custOrder=['VPI','Freezes','Percent_Moving', 'Distance','midCrossings','BPS','MeanBoutDistance','MeanBoutAngle','propTurns']
+    # NONFUNCTIONAL AT PRESENT Experimental sorting
+    # order=[]
+    # if diff:
+    #     for cust in custOrder:
+    #         order.append(cust+'_Diff')
+    # else:
+    #     for cust in custOrder:
+    #         order.append(cust+'_NS')
+    #         order.append(cust+'_S')
+    # index=[]
+    # for i in np.arange(0,len(order)):index.append(i)
+    # orderDict = dict()
+    # for ind,orde in enumerate(order):
+    #     orderDict[orde] = index[ind]    
+    # df.sort_values(by=[key=lambda x: x.map(orderDict),axis=1)
+    
+    # if sort:df_GeneMean = df_GeneMean.reindex(sorted(df_GeneMean.columns), axis=1)
+    df_GeneMean=df_GeneMean.drop('Scrambled')
+    
+    ax = sns.heatmap(df_GeneMean,vmin=vmin,vmax=vmax,cmap=col, linewidths=0.4, linecolor='grey')
+    
+    MannW_results_all_corr.Column=pd.Categorical(MannW_results_all_corr.Column,categories=MannW_results_all_corr.Column.unique(),ordered=True)
+    df_pivot = pd.pivot_table(MannW_results_all_corr, values='pvalue_corr', index=['Genotype'], columns=['Column'])
+
+    # df_pivot = df_pivot.reindex(sorted(df_pivot.columns), axis=1)
+
+    for i in range(0,df_GeneMean.shape[0]):
+        for j in range(df_GeneMean.shape[1]):
+            print(str(i) + ' ' + str(j))
+            value = df_pivot.iloc[i, j]
+            if value < 0.001:
+                # print('*** at point ' + str(j)+','+str(i))
+                ax.text(j+0.5, i+0.5, "**", ha="center", va="center", color='black', fontweight='bold')
+            elif value < 0.01:
+                # print('** at point ' + str(j)+','+str(i))
+                ax.text(j+0.5, i+0.5, "*", ha="center", va="center", color='black', fontweight='bold')
+            elif value < 0.05:
+                # print('* at point ' + str(j)+','+str(i))
+                ax.text(j+0.5, i+0.5, "*", ha="center", va="center", color='black', fontweight='bold')
+    return ax
+#%% find zscore, IQR and stats
+# axZ=heatmapBehaviour(dfZ,MannW_results_all_corr,figname='ZScodarkred',col='Spectral')
+# axIQR=heatmapBehaviour(dfIQR,MannW_results_all_corr,figname='IQR',col='Spectral',vmin=-2,vmax=2)
+
+# Simple difference between social and non social phases - helps adjust for baseline changes rather than changes due to the social cue. 
+diff_dfZ=SCZA.compute_phase_difference(dfZ)
+diff_dfIQR=SCZA.compute_phase_difference(dfIQR)
+MannW_results_diff_corrZ = SCZA.mann_whitney_all_vs_scrambled(diff_dfZ)
+MannW_results_diff_corrIQR = SCZA.mann_whitney_all_vs_scrambled(diff_dfIQR)
+# axDiffZ=heatmapBehaviour(diff_dfZ,MannW_results_diff_corrZ,figname='ZScodarkred_Diff')
+# axDiffIQR=heatmapBehaviour(diff_dfIQR,MannW_results_diff_corrIQR,figname='IQR_Diff')
+#  append to dfZ and dfIQR for complete fingerprint
+dfzz=pd.concat([dfZ,diff_dfZ],axis=1)
+dfzz = dfzz.loc[:,~dfzz.columns.duplicated()].copy()
+dfqq=pd.concat([dfIQR,diff_dfIQR],axis=1)
+dfqq = dfqq.loc[:,~dfqq.columns.duplicated()].copy()
+MannW_results_all_corr_fullZ=MannW_results_all_corr.append(MannW_results_diff_corrZ)
+MannW_results_all_corr_fullIQR=pd.concat([MannW_results_all_corr,MannW_results_diff_corrIQR],axis=0)
+
+#%%
+# plt.close('ZScored')
+# plt.close('IQR')
+behaviour_order = [0,1,18,2,3,19,4,5,20,6,7,21,8,9,22,10,11,23,12,13,24,14,15,25,17,18,26]
+genotype_order = conditionNames[1:]
+heatmapBehaviour(dfzz, MannW_results_all_corr=MannW_results_all_corr_fullZ, figname='ZScodarkred_corrected', genotype_order=genotype_order, behaviour_order=behaviour_order)
+# axZ=heatmapBehaviour1(dfzz,MannW_results_all_corr_fullZ,figname='ZScodarkred_corrected')
+# axIQR=heatmapBehaviour(dfqq,MannW_results_all_corr_fullIQR,figname='IQR_fdr_bh_corrected')
+
+#    Data collected, now some helper functions to run stats and plots
+# 
+#------------------------
+# Summary plots and stats
+#%% Run stats and plots for VPI
+# plotType='nothing'
+import SCZ_analysis as SCZA
+
+### COLORS ###
+control_color='black'
+sig_low_color=[10/255,40/255,205/255,1]
+sig_high_color=[175/255,21/255,70/255,1]
+cust_grey=[0.3,0.3,0.3,1]
+linewidth=2
+back_color=[0.6,0.6,0.6,1]
+###
+
+att=''
+variable='VPI'
+NS_data=VPI_NS_summary
+S_data=VPI_S_summary
+ylim=(-0.1,0.7)
+
+bar_colors=[control_color, sig_low_color, sig_low_color, sig_low_color,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
+# bar_colors.append([control_color,'Magenta',control_color, control_color,control_color,control_color,'Magenta',control_color,control_color,'Magenta',control_color])
+SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data, back_color=back_color,linewidth=linewidth,swarm_colors=bar_colors,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
+ylim=(-1,1)
+bar_colors=[[control_color, cust_grey, cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]]
+bar_colors.append([control_color, sig_low_color,sig_low_color, cust_grey,cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
+att='swarm'
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth, back_color=back_color,se=True, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+att='Summary'
+ylim=(-.5,0.8)
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=linewidth,back_color=back_color,se=True, swarm=False,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+
+#%% Run stats and plots for BPS
+variable='BPS'
+NS_data=BPS_NS_summary
+S_data=BPS_S_summary
+# ylim=(1,6)
+ylim=None
+
+bar_colors=[control_color, cust_grey, cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
+SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data,linewidth=linewidth,back_color=back_color, swarm_colors=bar_colors,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
+ylim=(1.5,3)
+bar_colors=[[control_color, sig_low_color, sig_low_color, sig_low_color,cust_grey,sig_low_color,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey]]
+bar_colors.append([control_color, sig_low_color, cust_grey, sig_low_color,cust_grey,sig_low_color,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey])
+att='swarm'
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=linewidth,back_color=back_color,se=True, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+att='Summary'
+ylim=(1.5,3)
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth,back_color=back_color, se=True, swarm=False,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+
+#%% Run stats and plots for Distance
+variable='Distance'
+NS_data=Distance_NS_summary
+S_data=Distance_S_summary
+# ylim=(1,6)
+ylim=None
+
+bar_colors=[control_color, cust_grey, cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
+SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data, linewidth=linewidth,back_color=back_color,swarm_colors=bar_colors,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
+ylim=(2000,8000)
+bar_colors=[[control_color, sig_low_color, sig_low_color, cust_grey,cust_grey,cust_grey,sig_high_color,sig_low_color,cust_grey,cust_grey,sig_high_color]]
+bar_colors.append([control_color, sig_low_color, sig_low_color, cust_grey,sig_low_color,cust_grey,sig_high_color,sig_low_color,cust_grey,cust_grey,cust_grey])
+att='swarm'
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth,back_color=back_color, se=True, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+att='Summary'
+# ylim=(1.5,3)
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth,back_color=back_color, se=True, swarm=False,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+
+#%% df,df_p=SCZA.plotOverallComparison(variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+df_cond=pd.DataFrame({'Genotype' : conditionNames})
+# df_p_VPI=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_cond,df_p],axis=1)
+
+# #%% Run stats and plots for Distance
+# subplotNum=(2,2,3)
+# variable='DistanceTraveled'
+# NS_data=Distance_NS_summary
+# S_data=Distance_S_summary
+# ylim=(0,15000)
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_Dist=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+
+#%% Run stats and plots for Freezes
+import SCZ_analysis as SCZA
+variable='Freezes'
+att='_bar'
+# att='_swarm'
+NS_data=Freezes_NS_summary
+S_data=Freezes_S_summary
+ylim=(0,14)
+bar_colors=[[control_color,sig_high_color,cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]]
+bar_colors.append([control_color,sig_high_color,cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,sig_high_color,cust_grey,cust_grey,cust_grey])
+bar_colors.append([control_color,cust_grey,cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
+
+SCZA.plotBarWithSEM(variable, conditionNames, NS_data, S_data, linewidth=linewidth,bar_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+# SCZA.plotSwarmWithFormatting(variable, conditionNames, NS_data, S_data, swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+# df,df_p=SCZA.plotOverallComparison(variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_Freezes=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+
+#%% Run stats and plots for Percent Moving
+import SCZ_analysis as SCZA
+variable='% Moving'
+att='_bar'
+# att='_swarm'
+NS_data=Percent_Moving_NS_summary
+S_data=Percent_Moving_S_summary
+ylim=(10,40)
+bar_colors=[[control_color,sig_low_color,sig_low_color, sig_low_color,sig_high_color,sig_low_color,cust_grey,cust_grey,cust_grey,sig_low_color,sig_high_color]]
+bar_colors.append([control_color,sig_low_color,cust_grey, sig_low_color,cust_grey,cust_grey,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey])
+bar_colors.append([control_color,cust_grey,cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
+
+SCZA.plotBarWithSEM(variable, conditionNames, NS_data, S_data, linewidth=linewidth,bar_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+
+#%%
+# SCZA.plotSwarmWithFormatting(variable, conditionNames, NS_data, S_data, swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+# df,df_p=SCZA.plotOverallComparison(variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_Freezes=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+# plt.figure()
+# subplotNum=(2,2,1)
+# variable='PercentTimeMoving'
+# NS_data=Percent_Moving_NS_summary
+# S_data=Percent_Moving_S_summary
+# ylim=None
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_PercMov=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+# # Run stats and plots for midcrossings
+# subplotNum=(2,2,2)
+# variable='midCrossings'
+# NS_data=midCrossings_NS_summary
+# S_data=midCrossings_S_summary
+# ylim=None
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_PercMov=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+# # Difference in VPI
+# subplotNum=(2,2,3)
+# variable='VPI Difference'
+# NS_data=VPI_NS_summary
+# S_data=VPI_S_summary
+# dfDiff,p_Diff=SCZA.plot_VPI_diff(subplotNum,variable,conditionNames,NS_data,S_data,ylim=None,mainPlot='dot',plotType='',att='',size=2,baralpha=0.8,wid=0.2,errMode='se',conf_meth='',alpha=0.4)
+
+
+# # new figures for bouts  & midCrossings
+# plt.figure('All-extended')
+# att='_midCrossings'
+# plotType='swarm'
+# mainPlot='dot'
+# errMode=0.95
+# # Run stats and plots for midcrossings
+# subplotNum=(2,2,4)
+# variable='midCrossings'
+# NS_data=midCrossings_NS_summary
+# S_data=midCrossings_S_summary
+# ylim=None
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_midCrossings=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+# plt.figure()
+# subplotNum=(3,1,1)
+# variable='MeanBoutAngles'
+# NS_data=boutAbsAngleMean_NS_summary
+# S_data=boutAbsAngleMean_S_summary
+# ylim=(25,75)
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_meanBoutAngle=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+# subplotNum=(3,1,2)
+# variable='MeanBoutDists'
+# NS_data=boutDistMean_NS_summary
+# S_data=boutDistMean_S_summary
+# ylim=(0,70)
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_meanBoutAngle=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+# subplotNum=(3,1,3)
+# variable='propTurns'
+# NS_data=propTurns_NS_summary
+# S_data=propTurns_S_summary
+# ylim=(0.2,0.6)
+# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
+# df_p_meanBoutAngle=pd.concat([df_cond,df_p],axis=1)
+# df_p_All=pd.concat([df_p_All,df_p],axis=1)
+
+
+# df_p_All=pd.concat(df_p_All,df_p)
+# tukey = pairwise_tukeyhsd(endog=df['score'],groups=df['group'],alpha=0.05)
+
+# Run stats and plots for Distance per bout
+# Run stats and plots for Angle per bout
+# Make angle vs distance plots for each genotype
+
+
+#%%
+print('FIN')
+#FIN
+
+#%%
+       
+    ####### WIP ##########
+    # series_list_NS = []
+    # series_list_S = []
+    # series_list_ALL = []
+    # series_list = []
+    # geneS=[]
+    # xxS=[]
+    
+    # gene=[]
+    # xx=[]
+    
+    # palette=sns.color_palette("hls", len(conditionNames))
+    # for i, name in enumerate(conditionNames):
+    #     s = pd.Series(NS_data[i], name=variable)
+    #     for j in range(len(NS_data[i])):
+    #         gene.append(name)
+    #         xx.append("NS: " + name)
+    #     series_list.append(s)
+        
+    
+    # for i, name in enumerate(conditionNames):
+    #     condition.append(i)
+    #     s = pd.Series(S_data[i], name="S: " + name)
+    #     for j in range(len(S_data[i])):
+    #         gene.append(name)
+    #         xx.append("S: " + name)
+    #     series_list.append(s)
+        
+    # df = pd.concat(series_list, axis=1)
+        
+    # sns.barplot(x=xx,y=df, orient="v", saturation=0.2, color=(0.75,0.75,0.75,0.8), ci=95, capsize=0.05, errwidth=2,hue=geneS)
+    # if plotType=='strip':
+    #     sns.stripplot(data=df, orient="v", size=2, jitter=True, dodge=True, edgecolor="white", hue=gene,palette=palette)
+    # elif plotType=='swarm':
+    #     sns.swarmplot(data=df, orient="v", size=1, edgecolor="white",color='gray')
+    # plt.xticks(rotation=45)
+    
+# Make a big dataframe of everything???
+
+# loop through each fish and create new entry for it
+
+# columnNames=['Gene','NS_VPI','NS_BPS','NS_DistanceTravelled','NS_PercentTimeMoving','NS_Freezes','NS_LongFreezes','S_VPI','S_BPS','S_DistanceTravelled','S_PercentTimeMoving','S_Freezes','S_LongFreezes']
+# gene_list=[]
+# for i, name in enumerate(conditionNames):
+#     gene_list.append(name)
+#     # [NS_VPI,NS_BPS,NS_DistanceTravelled,NS_PercentTimeMoving,NS_Freezes,NS_LongFreezes,S_VPI,S_BPS,S_DistnaceTravelled,S_PercentTimeMoving,S_Freezes,S_LongFreezes]
+#     varlist=[VPI_NS_summary[i],BPS_NS_summary[i],Distance_NS_summary[i],Percent_Moving_NS_summary[i],Freezes_NS_summary[i],Long_Freezes_NS_summary[i],VPI_S_summary[i],BPS_S_summary[i],Distance_S_summary[i],Percent_Moving_S_summary[i],Freezes_S_summary[i],Long_Freezes_S_summary[i]]
+#     for j,colName in columnNames:
+#         NS_VPI_List.append(varlist[j])
 #%% plot all parameters in summary violin or box plots individual figures... testing
 def ViolinBoxSummaryIndFigs(dfZ,meth='box',genes=None):
     
@@ -474,284 +870,3 @@ numGenes=len(dfZ.groupby('Genotype'))
 
 # ViolinBoxSummaryIndFigs(dfAll,meth='violin')
 ViolinBoxSummaryIndFigs(dfStats,meth='box',genes=genes)
-#%% ZScore
-def heatmapBehaviour(df,MannW_results_all_corr,figname=None,vmin=-1.8,vmax=1.8,col='Spectral',sort=False): #diff=True add if trying experimental sorting
-    df_GeneMean=df.groupby('Genotype').mean()
-    plt.figure(figname)
-    
-    # custOrder=['VPI','Freezes','Percent_Moving', 'Distance','midCrossings','BPS','MeanBoutDistance','MeanBoutAngle','propTurns']
-    # NONFUNCTIONAL AT PRESENT Experimental sorting
-    # order=[]
-    # if diff:
-    #     for cust in custOrder:
-    #         order.append(cust+'_Diff')
-    # else:
-    #     for cust in custOrder:
-    #         order.append(cust+'_NS')
-    #         order.append(cust+'_S')
-    # index=[]
-    # for i in np.arange(0,len(order)):index.append(i)
-    # orderDict = dict()
-    # for ind,orde in enumerate(order):
-    #     orderDict[orde] = index[ind]    
-    # df.sort_values(by=[key=lambda x: x.map(orderDict),axis=1)
-    
-    # if sort:df_GeneMean = df_GeneMean.reindex(sorted(df_GeneMean.columns), axis=1)
-    df_GeneMean=df_GeneMean.drop('Scrambled')
-    
-    ax = sns.heatmap(df_GeneMean,vmin=vmin,vmax=vmax,cmap=col, linewidths=0.4, linecolor='grey')
-    
-    MannW_results_all_corr.Column=pd.Categorical(MannW_results_all_corr.Column,categories=MannW_results_all_corr.Column.unique(),ordered=True)
-    df_pivot = pd.pivot_table(MannW_results_all_corr, values='pvalue_corr', index=['Genotype'], columns=['Column'])
-    # df_pivot = df_pivot.reindex(sorted(df_pivot.columns), axis=1)
-
-    for i in range(0,df_GeneMean.shape[0]):
-        for j in range(df_GeneMean.shape[1]):
-            print(str(i) + ' ' + str(j))
-            value = df_pivot.iloc[i, j]
-            if value < 0.001:
-                # print('*** at point ' + str(j)+','+str(i))
-                ax.text(j+0.5, i+0.5, "**", ha="center", va="center", color='black', fontweight='bold')
-            elif value < 0.01:
-                # print('** at point ' + str(j)+','+str(i))
-                ax.text(j+0.5, i+0.5, "*", ha="center", va="center", color='black', fontweight='bold')
-            elif value < 0.05:
-                # print('* at point ' + str(j)+','+str(i))
-                ax.text(j+0.5, i+0.5, "*", ha="center", va="center", color='black', fontweight='bold')
-    return ax
-#%% IQR (more appropriate for non-normal data)
-# axZ=heatmapBehaviour(dfZ,MannW_results_all_corr,figname='ZScored',col='Spectral')
-# axIQR=heatmapBehaviour(dfIQR,MannW_results_all_corr,figname='IQR',col='Spectral',vmin=-2,vmax=2)
-
-#%% Simple difference between social and non social phases - helps adjust for baseline changes rather than changes due to the social cue. 
-diff_dfZ=SCZA.compute_phase_difference(dfZ)
-diff_dfIQR=SCZA.compute_phase_difference(dfIQR)
-MannW_results_diff_corrZ = SCZA.mann_whitney_all_vs_scrambled(diff_dfZ)
-MannW_results_diff_corrIQR = SCZA.mann_whitney_all_vs_scrambled(diff_dfIQR)
-# axDiffZ=heatmapBehaviour(diff_dfZ,MannW_results_diff_corrZ,figname='ZScored_Diff')
-# axDiffIQR=heatmapBehaviour(diff_dfIQR,MannW_results_diff_corrIQR,figname='IQR_Diff')
-#%% append to dfZ and dfIQR for complete fingerprint
-dfzz=pd.concat([dfZ,diff_dfZ],axis=1)
-dfzz = dfzz.loc[:,~dfzz.columns.duplicated()].copy()
-dfqq=pd.concat([dfIQR,diff_dfIQR],axis=1)
-dfqq = dfqq.loc[:,~dfqq.columns.duplicated()].copy()
-MannW_results_all_corr_fullZ=MannW_results_all_corr.append(MannW_results_diff_corrZ)
-MannW_results_all_corr_fullIQR=pd.concat([MannW_results_all_corr,MannW_results_diff_corrIQR],axis=0)
-
-# plt.close('ZScored')
-# plt.close('IQR')
-axZ=heatmapBehaviour(dfzz,MannW_results_all_corr_fullZ,figname='ZScored_fdr_bh_corrected')
-axIQR=heatmapBehaviour(dfqq,MannW_results_all_corr_fullZ,figname='IQR_fdr_bh_corrected')
-
-# diffZax=heatmapBehaviour(diff_dfZ,MannW_results_diff_corrZ,figname='Zscore Phase Diff')
-# diffIQRax=heatmapBehaviour(diff_dfIQR,MannW_results_diff_corrIQR,figname='IQR Phase Diff')
-#%%
-# cmap.set_under('darkred')
-# fig, ax = plt.subplots()
-# cax = ax.imshow(df_pivot, cmap=cmap, vmin=0, vmax=0.1)
-
-# plt.figure()
-# ax1 = sns.heatmap(df_pivot,vmin=0,vmax=0.1,cmap='Spectral', linewidths=0.4, linecolor='grey')
-
-
-# for _, spine in ax.spines.items():
-#     spine.set_visible(True)
-
-# for item in ax.get_yticklabels():
-#     item.set_rotation(0)
-
-# for item in ax.get_xticklabels():
-#     item.set_rotation(45)
-    
-# Freezes location; important where they are
-
-# Find a way to cover the baseline (NS) changes in the social side (i.e. if fish are swimming less in the NS, then you would expect them to be less in S)
-
-# Per bout metrics! Comparison plots and distance vs angle - short bouts are sign of stress
-
-
-#%%    Data collected, now some helper functions to run stats and plots
-# 
-#------------------------
-# Summary plots and stats
-
-    
-    
-
-
-#%% Run stats and plots for VPI
-# plotType='nothing'
-plotType='swarm'
-# plotType='strip'
-att='_dot'
-mainPlot='dot'
-subplotNum=(2,3,1)
-errMode=0.95
-# subplotNum=(0,0,0)
-variable='VPI'
-NS_data=VPI_NS_summary
-S_data=VPI_S_summary
-ylim=None
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_cond=pd.DataFrame({'Genotype' : conditionNames})
-df_p_VPI=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_cond,df_p],axis=1)
-# Run stats and plots for BPS
-subplotNum=(2,3,2)
-variable='BPS'
-NS_data=BPS_NS_summary
-S_data=BPS_S_summary
-ylim=(0,5)
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_BPS=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-# Run stats and plots for Distance
-subplotNum=(2,3,3)
-variable='DistanceTraveled'
-NS_data=Distance_NS_summary
-S_data=Distance_S_summary
-ylim=(0,15000)
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_Dist=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-# Run stats and plots for Freezes
-subplotNum=(2,3,4)
-variable='Freezes'
-NS_data=Freezes_NS_summary
-S_data=Freezes_S_summary
-ylim=(0,20)
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_Freezes=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-# Run stats and plots for Percent Moving
-# subplotNum=(2,3,5)
-# variable='PercentTimeMoving'
-# NS_data=Percent_Moving_NS_summary
-# S_data=Percent_Moving_S_summary
-# ylim=None
-# df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-# df_p_PercMov=pd.concat([df_cond,df_p],axis=1)
-# df_p_All=pd.concat([df_p_All,df_p],axis=1)
-# Run stats and plots for midcrossings
-subplotNum=(2,3,5)
-variable='midCrossings'
-NS_data=Percent_Moving_NS_summary
-S_data=Percent_Moving_S_summary
-ylim=None
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_PercMov=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-# Difference in VPI
-subplotNum=(2,3,6)
-variable='VPI Difference'
-NS_data=VPI_NS_summary
-S_data=VPI_S_summary
-
-dfDiff,p_Diff=SCZA.plot_VPI_diff(subplotNum,variable,conditionNames,NS_data,S_data,ylim=None,mainPlot='dot',plotType='',att='',size=2,baralpha=0.8,wid=0.2,errMode='se',conf_meth='',alpha=0.4)
-
-# new figures for bouts  & midCrossings
-att='_Bouts_dot'
-plotType='nothing'
-mainPlot='dot'
-errMode=0.95
-# Run stats and plots for midcrossings
-subplotNum=(2,2,1)
-variable='midCrossings'
-NS_data=midCrossings_NS_summary
-S_data=midCrossings_S_summary
-ylim=None
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_midCrossings=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-
-subplotNum=(2,2,2)
-variable='MeanBoutAngles'
-NS_data=boutAbsAngleMean_NS_summary
-S_data=boutAbsAngleMean_S_summary
-ylim=None
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_meanBoutAngle=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-
-subplotNum=(2,2,3)
-variable='MeanBoutDists'
-NS_data=boutDistMean_NS_summary
-S_data=boutDistMean_S_summary
-ylim=None
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_meanBoutAngle=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-
-subplotNum=(2,2,4)
-variable='propTurns'
-NS_data=propTurns_NS_summary
-S_data=propTurns_S_summary
-ylim=None
-df,df_p=SCZA.plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,errMode=errMode,mainPlot=mainPlot,plotType=plotType,ylim=ylim)
-df_p_meanBoutAngle=pd.concat([df_cond,df_p],axis=1)
-df_p_All=pd.concat([df_p_All,df_p],axis=1)
-
-
-# df_p_All=pd.concat(df_p_All,df_p)
-# tukey = pairwise_tukeyhsd(endog=df['score'],groups=df['group'],alpha=0.05)
-
-# Run stats and plots for Distance per bout
-# Run stats and plots for Angle per bout
-# Make angle vs distance plots for each genotype
-
-
-#%%
-print('FIN')
-#FIN
-
-#%%
-       
-    ####### WIP ##########
-    # series_list_NS = []
-    # series_list_S = []
-    # series_list_ALL = []
-    # series_list = []
-    # geneS=[]
-    # xxS=[]
-    
-    # gene=[]
-    # xx=[]
-    
-    # palette=sns.color_palette("hls", len(conditionNames))
-    # for i, name in enumerate(conditionNames):
-    #     s = pd.Series(NS_data[i], name=variable)
-    #     for j in range(len(NS_data[i])):
-    #         gene.append(name)
-    #         xx.append("NS: " + name)
-    #     series_list.append(s)
-        
-    
-    # for i, name in enumerate(conditionNames):
-    #     condition.append(i)
-    #     s = pd.Series(S_data[i], name="S: " + name)
-    #     for j in range(len(S_data[i])):
-    #         gene.append(name)
-    #         xx.append("S: " + name)
-    #     series_list.append(s)
-        
-    # df = pd.concat(series_list, axis=1)
-        
-    # sns.barplot(x=xx,y=df, orient="v", saturation=0.2, color=(0.75,0.75,0.75,0.8), ci=95, capsize=0.05, errwidth=2,hue=geneS)
-    # if plotType=='strip':
-    #     sns.stripplot(data=df, orient="v", size=2, jitter=True, dodge=True, edgecolor="white", hue=gene,palette=palette)
-    # elif plotType=='swarm':
-    #     sns.swarmplot(data=df, orient="v", size=1, edgecolor="white",color='gray')
-    # plt.xticks(rotation=45)
-    
-# Make a big dataframe of everything???
-
-# loop through each fish and create new entry for it
-
-# columnNames=['Gene','NS_VPI','NS_BPS','NS_DistanceTravelled','NS_PercentTimeMoving','NS_Freezes','NS_LongFreezes','S_VPI','S_BPS','S_DistanceTravelled','S_PercentTimeMoving','S_Freezes','S_LongFreezes']
-# gene_list=[]
-# for i, name in enumerate(conditionNames):
-#     gene_list.append(name)
-#     # [NS_VPI,NS_BPS,NS_DistanceTravelled,NS_PercentTimeMoving,NS_Freezes,NS_LongFreezes,S_VPI,S_BPS,S_DistnaceTravelled,S_PercentTimeMoving,S_Freezes,S_LongFreezes]
-#     varlist=[VPI_NS_summary[i],BPS_NS_summary[i],Distance_NS_summary[i],Percent_Moving_NS_summary[i],Freezes_NS_summary[i],Long_Freezes_NS_summary[i],VPI_S_summary[i],BPS_S_summary[i],Distance_S_summary[i],Percent_Moving_S_summary[i],Freezes_S_summary[i],Long_Freezes_S_summary[i]]
-#     for j,colName in columnNames:
-#         NS_VPI_List.append(varlist[j])

@@ -170,7 +170,8 @@ def checkStats1(df,scram_NS,scram_S,conditionNames):
 
     return p_fromNS,p_fromScramNS,p_fromScramS,conditionNames
 
-def plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,ylim=None,mainPlot='dot',plotType='swarm',fignames=['All','NS','S'],att='',size=2,baralpha=0.8,wid=0.2,errMode='se',conf_meth='',alpha=0.4):
+# currently broken#
+def plotOverallComparison_subplots(variable,conditionNames,NS_data,S_data,ylim=None,mainPlot='dot',plotType='swarm',fignames=['All','NS','S'],att='',size=2,baralpha=0.8,wid=0.2,errMode='se',conf_meth='',alpha=0.4):
     
     scramNS=NS_data[0]
     scramS=S_data[0]
@@ -279,7 +280,97 @@ def plotOverallComparison(subplotNum,variable,conditionNames,NS_data,S_data,ylim
         if ylim is not None:
             plt.ylim(ylim)
         return df, df_p
+
+def plotOverallComparison(variable, conditionNames, NS_data, S_data, ylim=None, mainPlot='dot', plotType='swarm', fignames=['All', 'NS', 'S'], att='', size=2, baralpha=0.8, wid=0.2, errMode='se', conf_meth='', alpha=0.4):
+
+    scramNS = NS_data[0]
+    scramS = S_data[0]
+    palette = sns.color_palette("deep", 15)
+    colorsS = [[(0.75, 0.75, 0.75)], palette[:len(conditionNames[1:])], [(0.75, 0.75, 0.75)], palette[:len(conditionNames) - 1]]
+    colors = [i for s in colorsS for i in s]
+
+    series_list = []
+    series_list_NS = []
+    series_list_S = []
+
+    for i, name in enumerate(conditionNames):
+        s = pd.Series(NS_data[i], name="NS: " + name)
+        series_list.append(s)
+        series_list_NS.append(s)
+    for i, name in enumerate(conditionNames):
+        s = pd.Series(S_data[i], name="S: " + name)
+        series_list.append(s)
+        series_list_S.append(s)
+
+    df = pd.concat(series_list, axis=1)
+    df_NS = pd.concat(series_list_NS, axis=1)
+    df_S = pd.concat(series_list_S, axis=1)
+    dfList = [df, df_NS, df_S]
+
+    # Run stats and create dataframe to store p-values
+    p_fromNS, p_fromScramNS, p_fromScramS, p_fromNS_corr, p_fromScramNS_corr, p_fromScramS_corr = checkStats(df, scramNS, scramS, conditionNames)
+    d_p = {'S_from_NS_' + variable: p_fromNS_corr,
+         'NS_from_Scram_NS_' + variable: p_fromScramNS_corr,
+         'S_from_Scram_S_' + variable: p_fromScramS_corr}
+    df_p = pd.DataFrame(d_p, columns=list(d_p.keys()))
+
+    figname = fignames[0] + att
+    plt.figure(figname, constrained_layout=True)
+    plt.suptitle(figname)
+    plt.title(variable)
     
+    if mainPlot == 'bar':
+        ax = sns.barplot(data=df, orient="v", saturation=0.3, ci=95, capsize=0.05, errwidth=2, alpha=0.8)
+        for bar, color in zip(ax.containers[0], colors):
+            bar.set_color(color)
+    elif mainPlot == 'violin':
+        ax = sns.violinplot(data=df, orient="v", saturation=0.3, ci=95, capsize=0.05, errwidth=2, alpha=0.8)
+    elif mainPlot == 'dot':
+        colNames = df.columns.tolist()
+        x = np.linspace(0, len(colNames) - 1, len(colNames))
+        y_mean = np.nanmean(np.asarray(df, dtype=np.float64), axis=0)
+        y_std = np.nanstd(np.asarray(df, dtype=np.float64), axis=0)
+
+        leng = df.shape[0]
+        n = leng - (df.isna().sum())
+        y_ste = y_std / np.sqrt(n)
+
+        for idcol, color in enumerate(colors):
+            xd = x[idcol]
+            yd = y_mean[idcol]
+            if errMode == 'std':
+                ye = y_std[idcol]
+            elif errMode == 'se':
+                ye = y_ste[idcol]
+            elif type(errMode) == float:
+                dat = np.asarray(df, dtype=np.float64)[:, idcol]
+                dat = dat[~np.isnan(dat)]
+                if conf_meth == 'bootstrap':
+                    values = [np.random.choice(dat, size=len(x), replace=True).mean() for i in range(1000)]
+                    ye = np.percentile(values, [100 * (1 - errMode) / 2, 100 * (1 - (1 - errMode) / 2)])[1] - yd
+                else:
+                    ye = stats.t.interval(confidence=errMode, df=n[idcol], loc=yd, scale=y_ste[idcol])[1] - yd
+
+            colName = colNames[idcol]
+            plt.scatter(xd, yd, color=color, label=colName)
+            plt.plot((xd, xd), (yd - ye, yd + ye), color=color)
+            plt.plot((xd - wid, xd + wid), (yd - ye, yd - ye), color=color)
+            plt.plot((xd - wid, xd + wid), (yd + ye, yd + ye), color=color)
+
+        plt.xticks(x, colNames)
+
+    if plotType == 'strip':
+        sns.stripplot(data=df, orient="v", size=2, jitter=True, dodge=True, edgecolor="white", alpha=alpha, color='gray')
+        plt.xticks(rotation=45)
+    elif plotType == 'swarm':
+        sns.swarmplot(data=df, orient="v", size=1, alpha=alpha, color='gray')
+        plt.xticks(rotation=45)
+
+    if ylim is not None:
+        plt.ylim(ylim)
+    
+    return df, df_p
+
 def plot_VPI_diff(subplotNum,variable,conditionNames,NS_data,S_data,ylim=None,mainPlot='dot',plotType='swarm',fignames=['All','NS','S'],att='',size=2,baralpha=0.8,wid=0.2,errMode='se',conf_meth='',alpha=0.4):
     scramDiff=np.array(S_data[0],dtype=np.float64)-np.array(NS_data[0],dtype=np.float64)
     colors = [i for s in [[(0.75,0.75,0.75)],sns.color_palette("deep", 15)[:len(conditionNames[1:])]] for i in s]
@@ -298,11 +389,11 @@ def plot_VPI_diff(subplotNum,variable,conditionNames,NS_data,S_data,ylim=None,ma
     # from here edit
     if mainPlot=='bar':
         # sns.barplot(data=dfP, orient="v", saturation=0.2, color=(0.75,0.75,0.75,baralpha), ci=95, capsize=0.05, errwidth=2)
-        ax=sns.barplot(data=dfP, orient="v", saturation=0.3, ci=95, capsize=0.05, errwidth=2,alpha=0.8)
+        ax=sns.barplot(data=dfP, orient="v", saturation=0.3, ci=95, capsize=0.05, errwidth=2,alpha=0.8, linewidth=0)
         for bar, color in zip(ax.containers[0], colors):
             bar.set_color(color)
     elif mainPlot=='violin':
-        ax=sns.violinplot(data=dfP, orient="v", saturation=0.3, ci=95, capsize=0.05, errwidth=2,alpha=0.8)
+        ax=sns.violinplot(data=dfP, orient="v", saturation=0.3, ci=95, capsize=0.05, errwidth=2,alpha=0.8, linewidth=0)
         
     elif mainPlot=='dot':
         # find x of data
@@ -1589,6 +1680,387 @@ def compute_BTA(bouts_test, bouts_stim, output_test, output_stim, btaLength):
     BTA_stim[:,:,1] = SCZU.burst_triggered_alignment(peaks_stim, output_test_padded, 0, btaLength*2)
     
     return BTA_test, BTA_stim
+
+
+#%% New figures 230920       
+def plotBarWithSEM(variable, conditionNames, NS_data, S_data, linewidth=1.4, back_color=[0.5,0.5,0.5,1],bar_colorsS=(None, None, None), fignames=['NS', 'S'], att='', ylim=None):
+    # Create a figure for the NS and S data
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Loop through NS and S data
+    for idx, data, title, bar_colors in zip([0, 1], [NS_data, S_data], ['NS', 'S'], bar_colorsS):
+        # Create a list to store means and SEMs for each condition
+        means = []
+        sems = []
+
+        for i, name in enumerate(conditionNames):
+            condition_data = data[i]
+            condition_data = [float(val) for val in condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+
+            mean = np.mean(condition_data)
+            sem = stats.sem(condition_data, nan_policy='omit')
+
+            means.append(mean)
+            sems.append(sem)
+
+        # Manually set the color of the first bar to black, and keep the rest as default
+        if bar_colors == None:
+            bar_colors = ["black"] + ["lightgrey"] * (len(conditionNames) - 1)
+
+        # Plot the bar chart with SEM error bars
+        x = np.arange(len(conditionNames))
+        axes[idx].bar(x, means, yerr=sems, capsize=5, color=bar_colors, alpha=0.8, linewidth=0)
+        axes[idx].set_xticks(x)
+        axes[idx].set_xticklabels(conditionNames, rotation=45, ha='right')
+        axes[idx].set_ylabel(variable, fontsize=16, fontweight='bold')
+        axes[idx].tick_params(axis='both', which='major', width=1.5)
+        # Remove the right and top spines
+        axes[idx].spines['right'].set_visible(False)
+        axes[idx].spines['top'].set_visible(False)
+        axes[idx].spines['left'].set_linewidth(1.5)
+        axes[idx].spines['bottom'].set_linewidth(1.5)
+        axes[idx].set_title(fignames[idx] + variable + '_' + att, fontsize=16, fontweight='bold')
+
+        if ylim is not None:
+            axes[idx].set_ylim(ylim)
+
+        # Add horizontal dotted line and shaded area for the first data point
+        axes[idx].hlines(means[0], -0.5, len(conditionNames) - 0.5, colors='black', linestyles='dotted', linewidth=linewidth/1.5)
+        # axes[idx].fill_between([-0.5, len(conditionNames) - 0.5], means[0] - sems[0], means[0] + sems[0], color=back_color, alpha=0.3, lw=0)
+
+    # Create a figure for the difference between S and NS data
+    diff_fig, diff_axes = plt.subplots(figsize=(6, 6))
+    diff_data = [np.array(s) - np.array(ns) for s, ns in zip(S_data, NS_data)]
+    diff_means = [np.mean(data) for data in diff_data]
+    diff_sems = [stats.sem(data, nan_policy='omit') for data in diff_data]
+
+    # Use bar_colorsS[2] for the colors of the difference bars
+    diff_colors = bar_colorsS[2]
+
+    # Plot the bar chart with SEM error bars
+    x = np.arange(len(conditionNames))
+    diff_axes.bar(x, diff_means, yerr=diff_sems, capsize=5, color=diff_colors, alpha=0.8, linewidth=0)
+    diff_axes.set_xticks(x)
+    diff_axes.set_xticklabels(conditionNames, rotation=45, ha='right')
+    diff_axes.set_ylabel(f'{fignames[1]} - {fignames[0]} {variable}', fontsize=16, fontweight='bold')
+    diff_axes.tick_params(axis='both', which='major', width=1.5)
+    # Remove the right and top spines
+    diff_axes.spines['right'].set_visible(False)
+    diff_axes.spines['top'].set_visible(False)
+    diff_axes.spines['left'].set_linewidth(1.5)
+    diff_axes.spines['bottom'].set_linewidth(1.5)
+    diff_axes.set_title(f'Difference between {fignames[1]} and {fignames[0]} {variable}_' + att, fontsize=16, fontweight='bold')
+    
+    ylim=None
+    if ylim is not None:
+        diff_axes.set_ylim(ylim)
+
+    # Add horizontal dotted line and shaded area for the first data point in the difference plot
+    diff_axes.hlines(diff_means[0], -0.5, len(conditionNames) - 0.5, colors='black', linestyles='dotted', linewidth=linewidth)
+    diff_axes.fill_between([-0.5, len(conditionNames) - 0.5], diff_means[0] - diff_sems[0], diff_means[0] + diff_sems[0], color=back_color, alpha=0.3, lw=0)
+
+    plt.tight_layout()
+    plt.show()
+
+def plotBarWithSEM_orig(variable, conditionNames, NS_data, S_data, linewidth=2,bar_colorsS=(None,None),fignames=['NS', 'S'], att='', ylim=None):
+    for idx, data, title, bar_colors in zip([0, 1], [NS_data, S_data], ['NS', 'S'], bar_colorsS):
+        plt.figure()
+        sns.set_palette("deep")
+
+        # Create a list to store means and SEMs for each condition
+        means = []
+        sems = []
+
+        for i, name in enumerate(conditionNames):
+            condition_data = data[i]
+            condition_data = [float(val) for val in condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+
+            mean = np.mean(condition_data)
+            sem = stats.sem(condition_data, nan_policy='omit')
+
+            means.append(mean)
+            sems.append(sem)
+            
+
+        # Manually set the color of the first bar to black, and keep the rest as default
+        if bar_colors==None:
+            bar_colors = ["black"] + ["lightgrey"] * (len(conditionNames) - 1)
+        # Plot the bar chart with SEM error bars
+        x = range(len(conditionNames))
+        plt.bar(x, means, yerr=sems, capsize=5, color=bar_colors, alpha=0.8, edgecolor='black', linewidth=1.4)
+        plt.xticks(x, conditionNames, rotation=45, ha='right')
+        
+        # plt.xlabel('Conditions', fontsize=12, fontweight='bold')
+        plt.ylabel(variable, fontsize=16, fontweight='bold')
+        plt.xticks(fontsize=12, fontweight='bold')
+        plt.yticks(fontsize=12, fontweight='bold')
+        ax = plt.gca()
+        
+        ax.tick_params(axis='both', which='major', width=1.5)
+        # Remove the right and top spines
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_linewidth(1.5)  # Set the right spine thickness to 2
+        ax.spines['bottom'].set_linewidth(1.5)
+        
+        plt.title(fignames[idx] + variable + '_' + att, fontsize=16, fontweight='bold')
+
+        if ylim is not None:
+            plt.ylim(ylim)
+        
+        plt.tight_layout()
+
+
+def plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=2,back_color='lightgrey',swarm=True,se=False, swarm_colorsS=(None, None), fignames=['NS', 'S'], att='', ylim=None):
+    for idx, data, title, swarm_colors in zip([0, 1], [NS_data, S_data], ['NS', 'S'], swarm_colorsS):
+        plt.figure()
+
+        # Create a list to store swarm positions and labels
+        swarm_positions = []
+        swarm_labels = []
+        x_ticks = np.arange(len(conditionNames))
+        for i, name in enumerate(conditionNames):
+            condition_data = data[i]
+            condition_data = [float(val) for val in condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+
+            # Calculate the x-positions for each condition
+            x_position = i
+
+            # Add jittered positions for each data point within the same condition
+            jitter = np.random.normal(scale=0.05, size=len(condition_data))
+            positions = np.full(len(condition_data), x_position) + jitter
+            swarm_positions.extend(positions)
+            swarm_labels.extend([name] * len(condition_data))
+
+            # Manually set the color of the swarm points to grey
+            swarm_color = "grey"
+
+            # Plot the swarm points
+            if swarm:
+                plt.scatter(positions, condition_data, color=swarm_color, s=5, alpha=0.7)
+
+            # Calculate and plot median and SEM lines with swarm_colors
+            median = np.median(condition_data)
+            if se:
+                sem = np.std(condition_data) / np.sqrt(len(condition_data))
+            else:
+                sem = np.std(condition_data)
+
+            # Use swarm_colors for the lines
+            line_color = swarm_colors[i] if swarm_colors and len(swarm_colors) > i else 'black'
+
+            plt.plot([x_position-0.2, x_position+0.2], [median, median], color=line_color, linewidth=linewidth)  # Median line
+            plt.plot([x_position-0.1, x_position+0.1], [median - sem, median - sem], color=line_color, linewidth=linewidth)  # SEM lines
+            plt.plot([x_position-0.1, x_position+0.1], [median + sem, median + sem], color=line_color, linewidth=linewidth)  # SEM lines
+            plt.plot([x_position, x_position], [median + sem, median - sem], color=line_color, linewidth=linewidth)  # SEM lines
+            
+            # Add horizontal dotted line and shade the area for the first data point across the entire plot
+            if i == 0:
+                plt.hlines(median, x_ticks[0] - 0.2, x_ticks[-1] + 0.2, colors='black', linestyles='dotted', linewidth=2)
+                plt.fill_between([x_ticks[0] - 0.2, x_ticks[-1] + 0.2], median - sem, median + sem, color=back_color, alpha=0.3,lw=0)
+
+        # Set the x-axis ticks and labels to match the conditionNames
+        plt.xticks(x_ticks, conditionNames, rotation=45, fontsize=12, fontweight='bold')
+
+        plt.xlabel('Conditions', fontsize=16, fontweight='bold')
+        plt.ylabel(variable, fontsize=16, fontweight='bold')
+        plt.yticks(fontsize=12, fontweight='bold')
+        ax = plt.gca()
+
+        # Customize the axis spines thickness
+        ax.spines['left'].set_linewidth(1.5)
+        ax.spines['bottom'].set_linewidth(1.5)
+
+        # Customize the tick linewidth for both x and y axes
+        ax.tick_params(axis='both', which='major', width=1.5)
+
+        # Remove the right and top spines
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+
+        plt.title(fignames[idx] + variable + '_' + att, fontsize=16, fontweight='bold')
+
+        if ylim is not None:
+            plt.ylim(ylim)
+
+        plt.tight_layout()
+    return ax
+        
+def plotDifferenceSwarm(variable, conditionNames, NS_data, S_data,linewidth=2,back_color='lightgrey', swarm=True, ci=False, swarm_colors=None, fignames=['Difference'], att='', ylim=None):
+    plt.figure()
+
+    # Create a list to store swarm positions and labels
+    swarm_positions = []
+    swarm_labels = []
+
+    for i, condition_name in enumerate(conditionNames):
+        ns_condition_data = NS_data[i]
+        s_condition_data = S_data[i]
+
+        ns_condition_data = [float(val) for val in ns_condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+        s_condition_data = [float(val) for val in s_condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+
+        # Calculate the difference between NS_data and S_data for each condition
+        condition_data_diff = np.array(ns_condition_data) - np.array(s_condition_data)
+
+        # Calculate the x-positions for each condition
+        x_position = i
+
+        # Add jittered positions for each data point within the same condition
+        jitter = np.random.normal(scale=0.05, size=len(condition_data_diff))
+        positions = np.full(len(condition_data_diff), x_position) + jitter
+        swarm_positions.extend(positions)
+        swarm_labels.extend([condition_name] * len(condition_data_diff))
+
+        # Manually set the color of the swarm points to grey
+        swarm_color = "grey"
+
+        # Plot the swarm points
+        if swarm:
+            plt.scatter(positions, condition_data_diff, color=swarm_color, s=5, alpha=0.7)
+
+        # Calculate and plot mean and CI lines with swarm_colors
+        if ci:
+            mean = np.median(condition_data_diff)
+            ci_values = np.percentile(condition_data_diff, [25, 75])
+            ci_lower = mean - ci_values[0]
+            ci_upper = ci_values[1] - mean
+        else:
+            mean = np.median(condition_data_diff)
+            sem = np.std(condition_data_diff) / np.sqrt(len(condition_data_diff))
+            ci_lower = ci_upper = sem
+
+        # Use swarm_colors for the lines
+        line_color = swarm_colors[i] if swarm_colors and len(swarm_colors) > i else 'black'
+
+        plt.plot([x_position-0.2, x_position+0.2], [mean, mean], color=line_color, linewidth=linewidth)  # Mean line
+        plt.plot([x_position-0.1, x_position+0.1], [mean - ci_lower, mean - ci_lower], color=line_color, linewidth=linewidth)  # CI lines
+        plt.plot([x_position-0.1, x_position+0.1], [mean + ci_upper, mean + ci_upper], color=line_color, linewidth=linewidth)  # CI lines
+        plt.plot([x_position, x_position], [mean + ci_upper, mean - ci_lower], color=line_color, linewidth=linewidth)  # CI lines
+
+    # Calculate and plot horizontal dotted lines and shaded area for the first condition
+    first_condition_data = np.array(NS_data[0]) - np.array(S_data[0])
+    if ci:
+        first_mean = np.median(first_condition_data)
+        first_ci_values = np.percentile(first_condition_data, [25, 75])
+        first_ci_lower = first_mean - first_ci_values[0]
+        first_ci_upper = first_ci_values[1] - first_mean
+    else:
+        first_mean = np.median(first_condition_data)
+        first_sem = np.std(first_condition_data) / np.sqrt(len(first_condition_data))
+        first_ci_lower = first_ci_upper = first_sem
+
+    plt.axhline(y=first_mean, color='black', linestyle='--', linewidth=1, alpha=0.6)  # Dotted line at mean
+    plt.fill_between([min(swarm_positions) - 0.5, max(swarm_positions) + 0.5],
+                     first_mean - first_ci_lower, first_mean + first_ci_upper, color=back_color, alpha=0.2,lw=0)  # Shaded area
+
+    # Set the x-axis ticks and labels to match the conditionNames
+    x_ticks = np.arange(len(conditionNames))
+    plt.xticks(x_ticks, conditionNames, rotation=45, fontsize=12, fontweight='bold',horizontalalignment='right')
+
+    plt.xlabel('Conditions', fontsize=16, fontweight='bold')
+    plt.ylabel(variable + ' Difference (NS - S)', fontsize=16, fontweight='bold')
+    plt.yticks(fontsize=12, fontweight='bold')
+    ax = plt.gca()
+
+    # Customize the axis spines thickness
+    ax.spines['left'].set_linewidth(1.5)
+    ax.spines['bottom'].set_linewidth(1.5)
+
+    # Customize the tick linewidth for both x and y axes
+    ax.tick_params(axis='both', which='major', width=1.5)
+
+    # Remove the right and top spines
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    plt.title(fignames[0] + variable + ' Difference' + '_' + att, fontsize=16, fontweight='bold')
+
+    if ylim is not None:
+        plt.ylim(ylim)
+
+    plt.tight_layout()
+    
+def plotDifferenceSwarm1(variable, conditionNames, NS_data, S_data,linewidth=2, swarm=True, se=False, swarm_colors=None, fignames=['Difference'], att='', ylim=None):
+    plt.figure()
+
+    # Create a list to store swarm positions and labels
+    swarm_positions = []
+    swarm_labels = []
+
+    for i, condition_name in enumerate(conditionNames):
+        ns_condition_data = NS_data[i]
+        s_condition_data = S_data[i]
+
+        ns_condition_data = [float(val) for val in ns_condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+        s_condition_data = [float(val) for val in s_condition_data if val is not None and str(val).replace(".", "").replace("-", "").isdigit()]
+
+        # Calculate the difference between NS_data and S_data for each condition
+        condition_data_diff = np.array(ns_condition_data) - np.array(s_condition_data)
+
+        # Calculate the x-positions for each condition
+        x_position = i
+
+        # Add jittered positions for each data point within the same condition
+        jitter = np.random.normal(scale=0.05, size=len(condition_data_diff))
+        positions = np.full(len(condition_data_diff), x_position) + jitter
+        swarm_positions.extend(positions)
+        swarm_labels.extend([condition_name] * len(condition_data_diff))
+
+        # Manually set the color of the swarm points to grey
+        swarm_color = "grey"
+
+        # Plot the swarm points
+        if swarm:
+            plt.scatter(positions, condition_data_diff, color=swarm_color, s=5, alpha=0.7)
+        # else:
+            # plt.scatter(positions, condition_data_diff, color=swarm_color, s=5, alpha=0)
+        # Calculate and plot median and SEM lines with swarm_colors
+        median = np.median(condition_data_diff)
+        if se:
+            sem = np.std(condition_data_diff) / np.sqrt(len(condition_data_diff))
+        else:
+            sem = np.std(condition_data_diff)
+
+        # Use swarm_colors for the lines
+        line_color = swarm_colors[i] if swarm_colors and len(swarm_colors) > i else 'black'
+
+        plt.plot([x_position-0.2, x_position+0.2], [median, median], color=line_color, linewidth=linewidth)  # Median line
+        plt.plot([x_position-0.1, x_position+0.1], [median - sem, median - sem], color=line_color, linewidth=linewidth)  # SEM lines
+        plt.plot([x_position-0.1, x_position+0.1], [median + sem, median + sem], color=line_color, linewidth=linewidth)  # SEM lines
+        plt.plot([x_position, x_position], [median + sem, median - sem], color=line_color, linewidth=linewidth)  # SEM lines
+
+    # Set the x-axis ticks and labels to match the conditionNames
+    x_ticks = np.arange(len(conditionNames))
+    plt.xticks(x_ticks, conditionNames, rotation=45, fontsize=12, fontweight='bold')
+
+    plt.xlabel('Conditions', fontsize=16, fontweight='bold')
+    plt.ylabel(variable + ' Difference (NS - S)', fontsize=16, fontweight='bold')
+    plt.yticks(fontsize=12, fontweight='bold')
+    ax = plt.gca()
+
+    # Customize the axis spines thickness
+    ax.spines['left'].set_linewidth(1.5)
+    ax.spines['bottom'].set_linewidth(1.5)
+
+    # Customize the tick linewidth for both x and y axes
+    ax.tick_params(axis='both', which='major', width=1.5)
+
+    # Remove the right and top spines
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    plt.title(fignames[0] + variable + ' Difference' + '_' + att, fontsize=16, fontweight='bold')
+
+    if ylim is not None:
+        plt.ylim(ylim)
+
+    plt.tight_layout()
+
+
+
+
+
 #ret,RTurns,LTurns,FSwims,BPS, allBouts, allBoutsDist, allBoutsOrt, boutAngles, LturnPC,boutStarts,boutEnds,_,_ = AZA.extractBouts(newFx,newFy,newOrt,newDistPerFrame, savepath=idF,plot=True)
 # FIN
     
