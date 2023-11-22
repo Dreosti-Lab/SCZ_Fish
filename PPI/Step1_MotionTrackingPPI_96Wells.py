@@ -166,6 +166,28 @@ def grab_stim_times(folder):
     stim_frames=csv[0]
     return stim_frames
 
+def grab_stim_times_arduino_V1(folder,stim_thresh = 250000):
+    csvs=glob.glob(folder+r'/*.csv')
+    left=[item for item in csvs if "parameters" not in item]
+    stim_path=[item for item in left if "motionTraces" not in item][0]
+    csv=pd.read_csv(stim_path,header=None)
+    led_frames=csv[0]
+    # stim_frames = np.where(led_frames>stim_thresh)[0] # reports all frames LED is on. Typically it is on for 20 ms, so two or three frames. We want to isolate only one stimulus per LED on
+    stim_frames=[]
+    i=0
+    while i<len(led_frames):
+        # Check if intensity is above the threshold
+        led = led_frames[i]
+        if led > stim_thresh:
+            # Add the current frame index to the stimulus_frames list
+            stim_frames.append(i)
+
+            # Skip the next three frames
+            i += 3
+        else:
+            i+=1
+            
+    return stim_frames
 #%%    
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -177,7 +199,8 @@ if __name__ == "__main__":
     trackXY=False
     makeMovie=False
     # folderListFile=r'D:\dataToTrack\Habituation\FolderLists\Habituation_1000K_cont.txt'
-    folderListFile='S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/Data/FolderLists/PPI_Tracking_230928_all_minAmp_strag.txt'
+    folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/NewProtocolArduino/FolderLists/231116_PPI_sp4.txt'
+    # folderListFile='S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/Data/FolderLists/PPI_Tracking_230928_all_minAmp_strag.txt'
     # folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\FolderLists\PPI_Tracking_230928_grin2a.txt'
     # folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\PPITrial\FolderLists\PPI_Tracking_230831.txt'
     data_path,folderNames=PPIU.read_folder_list(folderListFile)
@@ -189,7 +212,8 @@ if __name__ == "__main__":
         print(f'Processing video {n} out of {N}')
         n+=1
         movie_path=glob.glob(folder+r'/*.avi')[0]
-        stim_frames=grab_stim_times(folder)
+        # stim_frames=grab_stim_times(folder)
+        stim_frames=grab_stim_times_arduino_V1(folder)
         stim_frames=stim_frames[1:]
         num_stim=len(stim_frames)
         
