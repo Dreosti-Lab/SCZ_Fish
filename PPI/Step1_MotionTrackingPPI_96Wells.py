@@ -4,8 +4,8 @@ Created on Thu Jul 20 03:34:29 2023
 
 @author: Tom
 """
-
-lib_path = r'D:\Tom\Github\SCZ_Fish\libs'
+#lib_path = r'C:\Users\Hande\Documents\Github\SCZ_Fish\libs' # Lab workstation lib path
+lib_path = r'D:\Tom\Github\SCZ_Fish\libs' # laptop lib path
 import sys
 sys.path.append(lib_path)
 
