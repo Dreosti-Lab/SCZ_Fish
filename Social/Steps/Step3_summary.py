@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 import glob
 import pandas as pd
 import seaborn as sns
-import cv2
 import scipy.stats as st
 # Import local modules
 import SCZ_utilities as SCZU
@@ -27,14 +26,22 @@ import SCZ_summary as SCZS
 import random
 save=True
 keep=False
+ext='.svg' # extension of saved figures
 # freeze_threshold_seconds=4
 # long_freeze_threshold_seconds=60
 # gene = 'trio'
 #base_path=r'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/C-Chamber/Analysis'
-base_path = r'D:\dataToTrack'
-analysisRoot = base_path + r'\Final_Social_SCZ_Analysis' 
-folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_FINAL.txt'
-# folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort.txt' #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
+
+base_path=r'D:/dataToTrack/'
+analysisRoot = base_path + r'/Social_SCZ_Analysis_Dec2023/' 
+folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_2023.txt'
+# OR set path to saved dataframe (ALL)
+path=None
+
+# base_path = r'D:\dataToTrack'
+# analysisRoot = base_path + r'\Final_Social_SCZ_Analysis_FINALVPI' 
+# folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_FINAL.txt'
+# # folderListFile = r'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/FolderLists/cumulative_' + gene + '_cohort.txt' #folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Data/Lesion_Social/ShamCChamber.txt'
 
 #%%##### Functions #############
 # kde plots
@@ -133,7 +140,7 @@ def cohortBoolGen(cohortList,cohortNum):
         else:
             ii.append(False)
     return ii
-    
+
 def plotSummaryVPI(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=True,keep=True):
     plt.figure()
     plt.tight_layout(rect=[0, 0, 1, 0.95])
@@ -158,7 +165,70 @@ def plotSummaryVPI(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=T
     plt.xticks([-1, -0.5, 0, 0.5, 1.0], fontsize=12)
     
     plt.subplot(1,3,3)
-    plt.bar(centers, a_s_nor_medium, width=0.25, color=[1.0,0.0,0.0,1.0], linewidth=4.0)
+    plt.bar(centers, a_s_nor_medium, width=bar_width, color=[1.0,0.0,0.0,1.0], linewidth=4.0)
+    plt.title('Social VPI', fontsize=12)
+    plt.xlabel('Preference Index', fontsize=12)
+    plt.ylabel('Rel. Frequency', fontsize=12)
+    plt.axis([-1.1, 1.1, 0, 0.5])
+    plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5], fontsize=12)
+    plt.xticks([-1, -0.5, 0, 0.5, 1.0], fontsize=12)  
+    
+    plt.suptitle(title)
+    if save:
+        plt.savefig(filename,dpi=600)
+    if keep==False:
+        plt.close()
+        axes=-1
+    else:
+        axes=plt.gca
+    return axes
+
+def plotSummaryVPI_grey(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=True,keep=True):
+    plt.figure()
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    # plt.subplot(1,3,1)
+    # plt.plot(centers, a_ns_nor_medium, color=[0.5,0.5,0.5,1.0], linewidth=4.0)
+    # plt.plot(centers, a_s_nor_medium, color=[1.0,0.0,0.0,0.5], linewidth=4.0)
+    # plt.title('Non Social/Social VPI', fontsize=12)
+    # plt.xlabel('Preference Index', fontsize=12)
+    # plt.ylabel('Rel. Frequency', fontsize=12)
+    # plt.axis([-1.1, 1.1, 0, 0.5])
+    # plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5], fontsize=12)
+    # plt.xticks([-1, -0.5, 0, 0.5, 1.0], fontsize=12)
+    
+    bar_width=0.25
+    plt.subplot(1,2,1)
+    plt.bar(centers, a_ns_nor_medium, width=bar_width, color=[0.5,0.5,0.5,0.8], linewidth=4.0)
+    plt.title('Non Social VPI', fontsize=12)
+    plt.xlabel('Preference Index', fontsize=12)
+    plt.ylabel('Rel. Frequency', fontsize=12)
+    plt.axis([-1.1, 1.1, 0, 0.5])
+    plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5], fontsize=12)
+    plt.xticks([-1, -0.5, 0, 0.5, 1.0], fontsize=12)
+    
+    plt.subplot(1,2,2)
+    plt.bar(centers, a_s_nor_medium, width=0.25, color=[0.3,0.3,0.3,1], linewidth=4.0)
+    plt.title('Social VPI', fontsize=12)
+    plt.xlabel('Preference Index', fontsize=12)
+    # plt.ylabel('Rel. Frequency', fontsize=12)
+    plt.axis([-1.1, 1.1, 0, 0.5])
+    plt.yticks([0, 0.1, 0.2, 0.3, 0.4, 0.5], fontsize=12)
+    plt.xticks([-1, -0.5, 0, 0.5, 1.0], fontsize=12)  
+    
+    plt.suptitle(title)
+    if save:
+        plt.savefig(filename,dpi=600)
+    if keep==False:
+        plt.close()
+        axes=-1
+    else:
+        axes=plt.gca
+    return axes
+
+def plotSummaryVPI_S_Only(centers,a_s_nor_medium,filename, title,save=True,keep=True):
+    plt.figure()
+    bar_width=0.25
+    plt.bar(centers, a_s_nor_medium, width=bar_width, color=[0.3,0.3,0.3,1.0], linewidth=4.0)
     plt.title('Social VPI', fontsize=12)
     plt.xlabel('Preference Index', fontsize=12)
     plt.ylabel('Rel. Frequency', fontsize=12)
@@ -312,7 +382,7 @@ def plotSummaryFreezes(ns,s,filename,title,save=True,keep=False):
         axes=plt.gca
     return axes
 
-def plotSummaryVPIComparisons(VPIs,compMets_NS,compMets_S,f_prefix,t_suffix,save=True,keep=False):
+def plotSummaryVPIComparisons(VPIs,compMets_NS,compMets_S,f_prefix,t_suffix,save=True,keep=False, ext='.svg'):
     [VPI_ns,VPI_s]=VPIs
     [BPS_ns,Distance_ns,Freezes_ns]=compMets_NS
     [BPS_s,Distance_s,Freezes_s]=compMets_S
@@ -339,7 +409,7 @@ def plotSummaryVPIComparisons(VPIs,compMets_NS,compMets_S,f_prefix,t_suffix,save
     
     if save:
         nam='VPI_vs_BPS_'+t_suffix
-        filename=f_prefix+nam+'.png'
+        filename=f_prefix+nam+ext
         plt.savefig(filename,dpi=600)
     if keep==False:
         plt.close()
@@ -367,7 +437,7 @@ def plotSummaryVPIComparisons(VPIs,compMets_NS,compMets_S,f_prefix,t_suffix,save
     
     if save:
         nam='VPI_vs_Dist'+t_suffix
-        filename=f_prefix+nam+'.png'
+        filename=f_prefix+nam+ext
         plt.savefig(filename,dpi=600)
     if keep==False:
         plt.close()
@@ -395,7 +465,7 @@ def plotSummaryVPIComparisons(VPIs,compMets_NS,compMets_S,f_prefix,t_suffix,save
     
     if save:
         nam='VPI_vs_Freezes'+t_suffix
-        filename=f_prefix+nam+'.png'
+        filename=f_prefix+nam+ext
         plt.savefig(filename,dpi=600)
     if keep==False:
         plt.close()
@@ -460,10 +530,12 @@ for idx,folder in enumerate(folderNames):
     # Determine FPS for this fish set
     aviFiles = glob.glob(NS_folder+'/*.avi')
     aviFile = aviFiles[0]
-    vid = cv2.VideoCapture(aviFile)
-    currentFPS=vid.get(cv2.CAP_PROP_FPS)
-    vid.release()
+    # debug
+    # vid = cv2.VideoCapture(aviFile)
+    # currentFPS=vid.get(cv2.CAP_PROP_FPS)
+    # vid.release()
     
+    currentFPS=100
     stat=fishStatus[idx]
     for j in range(0,6):
         if stat[j]==1:
@@ -1144,7 +1216,7 @@ for gene in geneList:
     ylim=(0,60)
     xlim=(-160,160)
     #plot random samples
-    filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_Sample.png'
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_Sample' + ext
     plt.figure('Scatter Sample NS')
     plt.scatter(angles_samp_ns,dists_samp_ns,s=2,color='black',alpha=0.05)
     plt.xlim(xlim)
@@ -1154,7 +1226,7 @@ for gene in geneList:
     if keep==False:
         plt.close()
         
-    filename = analysisFolder + '/' + gene + '_AngleVsDist_S_Sample.png'
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_S_Sample' + ext
     plt.figure('Scatter Sample S')
     plt.scatter(angles_samp_s,dists_samp_s,s=2,color='black',alpha=0.05)
     plt.xlim(xlim)
@@ -1164,7 +1236,7 @@ for gene in geneList:
     if keep==False:
         plt.close()
         
-    filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_Sample.png'
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_Sample' + ext
     plt.figure('Scatter Sample All vs')
     plt.scatter(angles_samp_ns,dists_samp_ns,s=2,color='black',alpha=0.02)
     plt.scatter(angles_samp_s,dists_samp_s,s=2,color='magenta',alpha=0.02)
@@ -1176,7 +1248,7 @@ for gene in geneList:
         plt.close()
     
     # plot everything
-    filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_ALL.png'
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_NS_ALL' + ext
     plt.figure('Scatter All NS')
     plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.01)
     plt.xlim(xlim)
@@ -1186,7 +1258,7 @@ for gene in geneList:
     if keep==False:
         plt.close()
         
-    filename = analysisFolder + '/' + gene + '_AngleVsDist_S_ALL.png'
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_S_ALL' + ext
     plt.figure('Scatter All S')
     plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='black',alpha=0.01)
     plt.xlim(xlim)
@@ -1196,7 +1268,7 @@ for gene in geneList:
     if keep==False:
         plt.close()
         
-    filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_ALL.png'
+    filename = analysisFolder + '/' + gene + '_AngleVsDist_NSvS_ALL' + ext
     plt.figure('Scatter All vs')
     plt.scatter(Angles_NS_ALL,Dists_NS_ALL,s=2,color='black',alpha=0.01)
     plt.scatter(Angles_S_ALL,Dists_S_ALL,s=2,color='magenta',alpha=0.01)
@@ -1212,27 +1284,31 @@ for gene in geneList:
     
     # VPI Summary Plot (ALL)
     centers,a_ns_nor_medium,a_s_nor_medium = getNormHist(VPI_NS_ALL,VPI_S_ALL,bins=8,ranger=(-1,1))
-    filename = analysisFolder + '/' + gene + '_VPI_ALL.png'
+    filename = analysisFolder + '/' + gene + '_VPI_ALL' + ext
     title='VPI Summary ALL'
     plotSummaryVPI(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=save,keep=keep)
     
+    filename = analysisFolder + '/' + gene + '_VPI_S' + ext
+    title='VPI Summary S'
+    # plotSummaryVPI_S_Only(centers,a_s_nor_medium,filename, title,save=save,keep=keep)
+    plotSummaryVPI_grey(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=save,keep=keep)
     # VPI Summary Plot (COHORT)
     for i in range(num_cohorts):
         centers,a_ns_nor_medium,a_s_nor_medium = getNormHist(VPI_NS_COHORT_list[i],VPI_S_COHORT_list[i],bins=8,ranger=(-1,1))
-        filename = analysisFolder + '/' + gene + '_VPI_COHORT_' + str(i) + '.png'
+        filename = analysisFolder + '/' + gene + '_VPI_COHORT_' + str(i) + ext
         title='VPI Summary Cohort ' + str(i)
         plotSummaryVPI(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=save,keep=keep)
-        
+    
     #------------------------------------------------------------------------------
     # VPI "Binned" Summary Plot
     #------------------------------------------------------------------------------
     # ALL
-    filename = analysisFolder + '/' + gene + '_VPI_BINS_ALL.png'
+    filename = analysisFolder + '/' + gene + '_VPI_BINS_ALL' + ext
     title="Temporal VPI (one minute bins) ALL"
     plotSummaryBinnedVPI(VPI_NS_BINS_ALL,VPI_S_BINS_ALL,filename,title,save=save,keep=keep)
     # COHORTS
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_VPI_BINS_COHORT_' + str(i) + '.png'
+        filename = analysisFolder + '/' + gene + '_VPI_BINS_COHORT_' + str(i) + ext
         title='Temporal VPI (one minute bins) COHORT ' + str(i)
         VPI_NS_BINS=VPI_NS_BINS_COHORT_list[i]
         VPI_S_BINS=VPI_S_BINS_COHORT_list[i]
@@ -1241,14 +1317,14 @@ for gene in geneList:
     # SPI Summary Plots
     #------------------------------------------------------------------------------
     # SPI ALL
-    filename = analysisFolder + '/' + gene + '_SPI_ALL.png'
+    filename = analysisFolder + '/' + gene + '_SPI_ALL' + ext
     title='SPI Summary ALL'
     centers,a_ns_nor_medium,a_s_nor_medium=getNormHist(SPI_NS_ALL,SPI_S_ALL,bins=8,ranger=(-1,1))
     plotSummaryVPI(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=save,keep=keep)
     
     # SPI Cohorts
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_SPI_COHORT_' + str(i) + '.png'
+        filename = analysisFolder + '/' + gene + '_SPI_COHORT_' + str(i) + ext
         title='SPI Summary COHORT ' + str(i)
         SPI_NS=SPI_NS_COHORT_list[i]
         SPI_S=SPI_S_COHORT_list[i]
@@ -1260,12 +1336,12 @@ for gene in geneList:
     centers,a_ns_nor_medium,a_s_nor_medium=getNormHist(BPS_NS_ALL,BPS_S_ALL,bins=16,ranger=(0,10))
     # Make histogram and plot it with lines 
     title='BPS ALL'
-    filename = analysisFolder + '/' + gene + '_BPS_ALL.png'
+    filename = analysisFolder + '/' + gene + '_BPS_ALL' + ext
     plotSummaryBPS(centers,a_ns_nor_medium,a_s_nor_medium,filename, title,save=save,keep=keep)
     
     # BPS COHORTS
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_BPS_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_BPS_COHORT_' + str(i+1) + ext
         title='BPS Summary COHORT ' + str(i+1)
         BPS_NS=BPS_NS_COHORT_list[i]
         BPS_S=BPS_S_COHORT_list[i]
@@ -1276,35 +1352,35 @@ for gene in geneList:
     # Bouts Summary Plot
     # Bouts ALL
     title='Bouts ALL ' + str(gene)
-    filename = analysisFolder + '/' + gene + '_Bouts_ALL.png'
+    filename = analysisFolder + '/' + gene + '_Bouts_ALL' + ext
     SCZS.plotSummaryBouts(Bouts_NS_ALL,Bouts_S_ALL,filename,title,save=save,keep=keep)
     # Bouts Cohorts
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_Bouts_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_Bouts_COHORT_' + str(i+1) + ext
         title='Bouts COHORT ' + str(i+1) + ' ' + str(gene)
         Bouts_NS=Bouts_NS_COHORT_list[i]
         Bouts_S=Bouts_S_COHORT_list[i]
         SCZS.plotSummaryBouts(Bouts_NS,Bouts_S,filename,title,save=save,keep=keep)
         
     # Bout Locations
-    filename = analysisFolder + '/' + gene + '_BoutLocations_ALL.png'
+    filename = analysisFolder + '/' + gene + '_BoutLocations_ALL' + ext
     title='Bout Location Summary ALL ' + str(gene)
     SCZS.plotSummaryBoutLocations(Bouts_NS_ALL,Bouts_S_ALL,filename,title,save=save,keep=keep,alpha=0.002)
     # Bout Locations Cohorts
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_BoutLocations_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_BoutLocations_COHORT_' + str(i+1) + ext
         title='Bout Location Summary COHORT ' + str(i+1) + ' ' + str(gene)
         Bouts_NS=Bouts_NS_COHORT_list[i]
         Bouts_S=Bouts_S_COHORT_list[i]
         SCZS.plotSummaryBoutLocations(Bouts_NS,Bouts_S,filename,title,save=save,keep=keep,alpha=0.002)
         
     # Bout Locations KDE
-    # filename = analysisFolder + '/' + gene + '_BoutLocations_KDE_ALL.png'
+    # filename = analysisFolder + '/' + gene + '_BoutLocations_KDE_ALL' + ext
     # title='Bout Location Summary ALL KDE ' + str(gene)
     # kdeplot(Bouts_NS_ALL,Bouts_S_ALL,savename=filename,title=title,save=save,keep=keep)
     # # Bout Locations Cohorts
     # for i in range(num_cohorts):
-    #     filename = analysisFolder + '/' + gene + '_BoutLocations_KDE_COHORT_' + str(i+1) + '.png'
+    #     filename = analysisFolder + '/' + gene + '_BoutLocations_KDE_COHORT_' + str(i+1) + ext
     #     title='Bout Location Summary COHORT KDE' + str(i+1) + ' ' + str(gene)
     #     Bouts_NS=Bouts_NS_COHORT_list[i]
     #     Bouts_S=Bouts_S_COHORT_list[i]
@@ -1314,24 +1390,24 @@ for gene in geneList:
     # Freezes Summary Plot
     # Freezes ALL
     title='Freezes ALL ' + str(gene)
-    filename = analysisFolder + '/' + gene + '_FrozenPauses_ALL.png'
+    filename = analysisFolder + '/' + gene + '_FrozenPauses_ALL' + ext
     plotSummaryFreezes(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title,save=save,keep=keep)
     # Freezes Cohorts
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_FrozenPauses_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_FrozenPauses_COHORT_' + str(i+1) + ext
         title='Freeze COHORT ' + str(i+1) + ' ' + str(gene)
         Pauses_Frozen_NS = Pauses_Frozen_NS_COHORT_list[i]
         Pauses_Frozen_S = Pauses_Frozen_S_COHORT_list[i]
         plotSummaryFreezes(Pauses_Frozen_NS,Pauses_Frozen_S,filename,title,save=save,keep=keep)
         
     # Freeze Locations ALL
-    filename = analysisFolder + '/' + gene + '_FreezeLocations_ALL.png'
+    filename = analysisFolder + '/' + gene + '_FreezeLocations_ALL' + ext
     title='Freeze Location Summary ALL' + str(gene)
     SCZS.plotSummaryBoutLocations(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title,save=save,keep=keep,alpha=0.2)
     
     # Freeze Locations COHORTS
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_FreezeLocations_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_FreezeLocations_COHORT_' + str(i+1) + ext
         title='Freeze Location Summary COHORT' + str(i+1) + ' ' + str(gene)
         Pauses_Frozen_NS=Pauses_Frozen_NS_COHORT_list[i]
         Pauses_Frozen_S=Pauses_Frozen_S_COHORT_list[i]
@@ -1339,13 +1415,13 @@ for gene in geneList:
     
     # KDE plots
     # Freeze Locations ALL KDE
-    filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_ALL.png'
+    filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_ALL' + ext
     title='Freeze Location Summary ALL KDE' + str(gene)
     kdeplot(Pauses_Frozen_NS_ALL,Pauses_Frozen_S_ALL,filename,title=title,save=save,keep=keep)
     
     # Freeze Locations COHORTS KDE
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_FreezeLocations_KDE_COHORT_' + str(i+1) + ext
         title='Freeze Location Summary COHORT KDE' + str(i+1) + ' ' + str(gene)
         Pauses_Frozen_NS=Pauses_Frozen_NS_COHORT_list[i]
         Pauses_Frozen_S=Pauses_Frozen_S_COHORT_list[i]
@@ -1396,12 +1472,12 @@ for gene in geneList:
     # ORT_HIST Summary Plot
     # Heading histograms ALL    
     title='Heading Summary ALL' + str(gene)
-    filename = analysisFolder + '/' + gene + '_OrtHist_ALL.png'
+    filename = analysisFolder + '/' + gene + '_OrtHist_ALL' + ext
     plotSummaryOrtHistograms(OrtHist_NS_NSS_ALL,OrtHist_NS_SS_ALL,OrtHist_S_NSS_ALL,OrtHist_S_SS_ALL, title, filename=filename,save=save,keep=keep)
     
     # Heading histograms Cohorts
     for i in range(num_cohorts):
-        filename = analysisFolder + '/' + gene + '_OrtHist_COHORT_' + str(i+1) + '.png'
+        filename = analysisFolder + '/' + gene + '_OrtHist_COHORT_' + str(i+1) + ext
         title='Bout Location Summary COHORT ' + str(i+1) + ' ' + str(gene)
         OrtHist_NS_NSS = OrtHist_NS_NSS_COHORT_list[i]
         OrtHist_NS_SS = OrtHist_NS_SS_COHORT_list[i]
@@ -1494,7 +1570,7 @@ for gene in geneList:
     # sns.barplot(data=df, orient="v", saturation=0.1, color=[0.75,0.75,0.75,1], ci=95, capsize=0.05, errwidth=2)
     plt.suptitle(gene)
     if save:
-        filename=filename = analysisFolder + '/' + gene + '_BehaviourSummary.png'
+        filename=filename = analysisFolder + '/' + gene + '_BehaviourSummary' + ext
         plt.savefig(filename,dpi=600)
     plt.close('all')
 print('FIN')
