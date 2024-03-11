@@ -27,18 +27,19 @@ import seaborn as sns
 import pandas as pd
 import glob
 
-# Set "Base Path" for this analysis session
+# Set "Base Path" for this analysis session and point to a folderList file
 base_path=r'D:/dataToTrack/'
 base_path = base_path + r'/Social_SCZ_Analysis_Dec2023/' 
-date = '231212'
 folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_2023.txt'
 # OR set path to saved dataframe (ALL)
-path=None
-# path = base_path + r'/Analysis/'
-# path=r'C:/Users/Tom/'
+path = "S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\AnalysisRounds\Social_SCZ_Analysis_Dec2023\Analysed_data\All_SCZ_Fish_231212.pkl"
+
 saveDataframe=True
 turnThresh=9.75 # degrees to consider a "turn" vs forward swim
-# plt.close('all')
+
+plt.close('all') # in case a bunch were left open
+
+date = '231212' # date suffix on analysis files
 if path is not None:
     print('Loading from file...')
     dfAll = pd.read_pickle(path + r"All_SCZ_Fish_" + date + ".pkl")
@@ -549,6 +550,7 @@ def sigColors(sig_Diff,sig,
               sig_low_color=[10/255,40/255,205/255,1],
               sig_high_color=[175/255,21/255,70/255,1],
               cust_grey=[0.3,0.3,0.3,1]):
+    # Function to apply rules to set solor by significance, and control color
 
     colorDict={'-1' : control_color,
                '1' : sig_low_color,
@@ -805,63 +807,10 @@ SCZA.plotBarWithSEM(variable, conditionNames, NS_data, S_data, linewidth=linewid
 # Run stats and plots for Distance per bout
 # Run stats and plots for Angle per bout
 # Make angle vs distance plots for each genotype
-
-
 #%%
-print('FIN')
-#FIN
-
-#%%
-       
-    ####### WIP ##########
-    # series_list_NS = []
-    # series_list_S = []
-    # series_list_ALL = []
-    # series_list = []
-    # geneS=[]
-    # xxS=[]
-    
-    # gene=[]
-    # xx=[]
-    
-    # palette=sns.color_palette("hls", len(conditionNames))
-    # for i, name in enumerate(conditionNames):
-    #     s = pd.Series(NS_data[i], name=variable)
-    #     for j in range(len(NS_data[i])):
-    #         gene.append(name)
-    #         xx.append("NS: " + name)
-    #     series_list.append(s)
-        
-    
-    # for i, name in enumerate(conditionNames):
-    #     condition.append(i)
-    #     s = pd.Series(S_data[i], name="S: " + name)
-    #     for j in range(len(S_data[i])):
-    #         gene.append(name)
-    #         xx.append("S: " + name)
-    #     series_list.append(s)
-        
-    # df = pd.concat(series_list, axis=1)
-        
-    # sns.barplot(x=xx,y=df, orient="v", saturation=0.2, color=(0.75,0.75,0.75,0.8), ci=95, capsize=0.05, errwidth=2,hue=geneS)
-    # if plotType=='strip':
-    #     sns.stripplot(data=df, orient="v", size=2, jitter=True, dodge=True, edgecolor="white", hue=gene,palette=palette)
-    # elif plotType=='swarm':
-    #     sns.swarmplot(data=df, orient="v", size=1, edgecolor="white",color='gray')
-    # plt.xticks(rotation=45)
-    
-# Make a big dataframe of everything???
-
-# loop through each fish and create new entry for it
-
-# columnNames=['Gene','NS_VPI','NS_BPS','NS_DistanceTravelled','NS_PercentTimeMoving','NS_Freezes','NS_LongFreezes','S_VPI','S_BPS','S_DistanceTravelled','S_PercentTimeMoving','S_Freezes','S_LongFreezes']
-# gene_list=[]
-# for i, name in enumerate(conditionNames):
-#     gene_list.append(name)
-#     # [NS_VPI,NS_BPS,NS_DistanceTravelled,NS_PercentTimeMoving,NS_Freezes,NS_LongFreezes,S_VPI,S_BPS,S_DistnaceTravelled,S_PercentTimeMoving,S_Freezes,S_LongFreezes]
-#     varlist=[VPI_NS_summary[i],BPS_NS_summary[i],Distance_NS_summary[i],Percent_Moving_NS_summary[i],Freezes_NS_summary[i],Long_Freezes_NS_summary[i],VPI_S_summary[i],BPS_S_summary[i],Distance_S_summary[i],Percent_Moving_S_summary[i],Freezes_S_summary[i],Long_Freezes_S_summary[i]]
-#     for j,colName in columnNames:
-#         NS_VPI_List.append(varlist[j])
+# ViolinBoxSummarSubplots(dfAll,meth='violin')
+# ViolinBoxSummarySubplots(dfStats,meth='box')
+numGenes=len(dfZ.groupby('Genotype'))
 #%% plot all parameters in summary violin or box plots individual figures... testing
 def ViolinBoxSummaryIndFigs(dfZ,meth='box',genes=None):
     
@@ -937,10 +886,59 @@ def ViolinBoxSummarySubplots(dfZ,meth='box',genes=None):
             axes[rows,cols].set_title(param)
     plt.show()
 
-#%%
-# ViolinBoxSummarSubplots(dfAll,meth='violin')
-# ViolinBoxSummarySubplots(dfStats,meth='box')
-numGenes=len(dfZ.groupby('Genotype'))
-
 # ViolinBoxSummaryIndFigs(dfAll,meth='violin')
 ViolinBoxSummaryIndFigs(dfStats,meth='box',genes=genes)
+#%%
+print('FIN')
+#FIN
+#%%
+       
+    ####### WIP ##########
+    # series_list_NS = []
+    # series_list_S = []
+    # series_list_ALL = []
+    # series_list = []
+    # geneS=[]
+    # xxS=[]
+    
+    # gene=[]
+    # xx=[]
+    
+    # palette=sns.color_palette("hls", len(conditionNames))
+    # for i, name in enumerate(conditionNames):
+    #     s = pd.Series(NS_data[i], name=variable)
+    #     for j in range(len(NS_data[i])):
+    #         gene.append(name)
+    #         xx.append("NS: " + name)
+    #     series_list.append(s)
+        
+    
+    # for i, name in enumerate(conditionNames):
+    #     condition.append(i)
+    #     s = pd.Series(S_data[i], name="S: " + name)
+    #     for j in range(len(S_data[i])):
+    #         gene.append(name)
+    #         xx.append("S: " + name)
+    #     series_list.append(s)
+        
+    # df = pd.concat(series_list, axis=1)
+        
+    # sns.barplot(x=xx,y=df, orient="v", saturation=0.2, color=(0.75,0.75,0.75,0.8), ci=95, capsize=0.05, errwidth=2,hue=geneS)
+    # if plotType=='strip':
+    #     sns.stripplot(data=df, orient="v", size=2, jitter=True, dodge=True, edgecolor="white", hue=gene,palette=palette)
+    # elif plotType=='swarm':
+    #     sns.swarmplot(data=df, orient="v", size=1, edgecolor="white",color='gray')
+    # plt.xticks(rotation=45)
+    
+# Make a big dataframe of everything???
+
+# loop through each fish and create new entry for it
+
+# columnNames=['Gene','NS_VPI','NS_BPS','NS_DistanceTravelled','NS_PercentTimeMoving','NS_Freezes','NS_LongFreezes','S_VPI','S_BPS','S_DistanceTravelled','S_PercentTimeMoving','S_Freezes','S_LongFreezes']
+# gene_list=[]
+# for i, name in enumerate(conditionNames):
+#     gene_list.append(name)
+#     # [NS_VPI,NS_BPS,NS_DistanceTravelled,NS_PercentTimeMoving,NS_Freezes,NS_LongFreezes,S_VPI,S_BPS,S_DistnaceTravelled,S_PercentTimeMoving,S_Freezes,S_LongFreezes]
+#     varlist=[VPI_NS_summary[i],BPS_NS_summary[i],Distance_NS_summary[i],Percent_Moving_NS_summary[i],Freezes_NS_summary[i],Long_Freezes_NS_summary[i],VPI_S_summary[i],BPS_S_summary[i],Distance_S_summary[i],Percent_Moving_S_summary[i],Freezes_S_summary[i],Long_Freezes_S_summary[i]]
+#     for j,colName in columnNames:
+#         NS_VPI_List.append(varlist[j])
