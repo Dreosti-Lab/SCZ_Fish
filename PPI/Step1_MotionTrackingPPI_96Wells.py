@@ -166,21 +166,30 @@ def grab_stim_times(folder):
     stim_frames=csv[0]
     return stim_frames
 
-def grab_stim_times_arduino_V1(folder,stim_thresh = 250000):
-    csvs=glob.glob(folder+r'/*.csv')
-    left=[item for item in csvs if "parameters" not in item]
-    stim_path=[item for item in left if "motionTraces" not in item][0]
+def grab_stim_times_arduino_V2(stim_path,stim_thresh = None, skip=None):
+    # csvs=glob.glob(folder+r'/*.csv')
+    # left=[item for item in csvs if "parameters" not in item]
+    # stim_path=[item for item in left if "motionTraces" not in item][0]
     csv=pd.read_csv(stim_path,header=None)
     led_frames=csv[0]
     # stim_frames = np.where(led_frames>stim_thresh)[0] # reports all frames LED is on. Typically it is on for 20 ms, so two or three frames. We want to isolate only one stimulus per LED on
     stim_frames=[]
-    i=0
+    
+    if skip == None:
+        skip=0
+    i=skip
+    
+    if stim_thresh == None:
+        print('Setting threshold from mean + 2*std of led readout')
+        stim_thresh = np.mean(led_frames)+(np.std(led_frames)*2)
+        print(f'Threshold set to {stim_thresh}, from a mean of {np.mean(led_frames)}')
+        
     while i<len(led_frames):
         # Check if intensity is above the threshold
         led = led_frames[i]
         if led > stim_thresh:
             # Add the current frame index to the stimulus_frames list
-            stim_frames.append(i)
+            stim_frames.append(i+skip)
 
             # Skip the next three frames
             i += 3
@@ -199,7 +208,8 @@ if __name__ == "__main__":
     trackXY=False
     makeMovie=False
     # folderListFile=r'D:\dataToTrack\Habituation\FolderLists\Habituation_1000K_cont.txt'
-    folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/NewProtocolArduino/FolderLists/231116_PPI_sp4.txt'
+    # folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/NewProtocolArduino/FolderLists/231116_PPI_sp4.txt'
+    # folderListFile = 'S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/NewProtocolArduino/FolderLists/231116_PPI_nr3c2.txt'
     # folderListFile='S:/WIBR_Dreosti_Lab/Tom/Crispr_Project/Behavior/PPI/Data/FolderLists/PPI_Tracking_230928_all_minAmp_strag.txt'
     # folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\FolderLists\PPI_Tracking_230928_grin2a.txt'
     # folderListFile=r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\PPI\Data\PPITrial\FolderLists\PPI_Tracking_230831.txt'
