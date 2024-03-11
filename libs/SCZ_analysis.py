@@ -1811,7 +1811,7 @@ def plotBarWithSEM_orig(variable, conditionNames, NS_data, S_data, linewidth=2,b
         plt.tight_layout()
 
 
-def plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=2,back_color='lightgrey',swarm=True,se=False, swarm_colorsS=(None, None), fignames=['NS', 'S'], att='', ylim=None):
+def plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=2,back_color='lightgrey',swarm=True,se=True,use_median=False, swarm_colorsS=(None, None), fignames=['NS', 'S'], att='', ylim=None):
     for idx, data, title, swarm_colors in zip([0, 1], [NS_data, S_data], ['NS', 'S'], swarm_colorsS):
         plt.figure()
 
@@ -1839,25 +1839,37 @@ def plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=2,back_color=
             if swarm:
                 plt.scatter(positions, condition_data, color=swarm_color, s=5, alpha=0.7)
 
-            # Calculate and plot median and SEM lines with swarm_colors
-            median = np.median(condition_data)
-            if se:
-                sem = np.std(condition_data) / np.sqrt(len(condition_data))
+            # Calculate and plot median / mean and SEM lines with swarm_colors
+            if use_median:
+                mew = np.median(condition_data)
+                print('using median')
+                print('using CI')
+                ci_values = np.percentile(condition_data, [25, 75])
+                ci_lower = mew - ci_values[0]
+                ci_upper = ci_values[1] - mew
             else:
-                sem = np.std(condition_data)
-
+                mew = np.mean(condition_data)
+                print('using mean')
+                if se:
+                    sem = np.std(condition_data) / np.sqrt(len(condition_data))
+                    print('using SEM')
+                else:
+                    sem = np.std(condition_data)
+                    print('using SD')
+                ci_lower = mew - sem
+                ci_upper = mew + sem
             # Use swarm_colors for the lines
             line_color = swarm_colors[i] if swarm_colors and len(swarm_colors) > i else 'black'
 
-            plt.plot([x_position-0.2, x_position+0.2], [median, median], color=line_color, linewidth=linewidth)  # Median line
-            plt.plot([x_position-0.1, x_position+0.1], [median - sem, median - sem], color=line_color, linewidth=linewidth)  # SEM lines
-            plt.plot([x_position-0.1, x_position+0.1], [median + sem, median + sem], color=line_color, linewidth=linewidth)  # SEM lines
-            plt.plot([x_position, x_position], [median + sem, median - sem], color=line_color, linewidth=linewidth)  # SEM lines
+            plt.plot([x_position-0.2, x_position+0.2], [mew, mew], color=line_color, linewidth=linewidth)  # Median line
+            plt.plot([x_position-0.1, x_position+0.1], [ci_lower, ci_lower], color=line_color, linewidth=linewidth)  # SEM lines
+            plt.plot([x_position-0.1, x_position+0.1], [ci_upper, ci_upper], color=line_color, linewidth=linewidth)  # SEM lines
+            plt.plot([x_position, x_position], [ci_upper, ci_lower], color=line_color, linewidth=linewidth)  # SEM lines
             
             # Add horizontal dotted line and shade the area for the first data point across the entire plot
             if i == 0:
-                plt.hlines(median, x_ticks[0] - 0.2, x_ticks[-1] + 0.2, colors='black', linestyles='dotted', linewidth=2)
-                plt.fill_between([x_ticks[0] - 0.2, x_ticks[-1] + 0.2], median - sem, median + sem, color=back_color, alpha=0.3,lw=0)
+                plt.hlines(mew, x_ticks[0] - 0.2, x_ticks[-1] + 0.2, colors='black', linestyles='dotted', linewidth=2)
+                plt.fill_between([x_ticks[0] - 0.2, x_ticks[-1] + 0.2], ci_lower, ci_upper, color=back_color, alpha=0.3,lw=0)
 
         # Set the x-axis ticks and labels to match the conditionNames
         plt.xticks(x_ticks, conditionNames, rotation=45, fontsize=12, fontweight='bold')

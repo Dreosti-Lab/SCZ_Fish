@@ -29,9 +29,9 @@ import glob
 
 # Set "Base Path" for this analysis session
 base_path=r'D:/dataToTrack/'
-base_path = base_path + r'/Final_Social_SCZ_Analysis_FINALVPI/' 
-date = '231011'
-folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_FINAL.txt'
+base_path = base_path + r'/Social_SCZ_Analysis_Dec2023/' 
+date = '231212'
+folderListFile = r'S:\WIBR_Dreosti_Lab\Tom\Crispr_Project\Behavior\Social\FolderLists\All_cohorts_2023.txt'
 # OR set path to saved dataframe (ALL)
 path=None
 # path = base_path + r'/Analysis/'
@@ -373,6 +373,12 @@ else:
     dfAll = dfAll[boo]
     dfZ = dfZ[boo]
     
+    # Remove weird outliers
+    boo=dfAll.Freezes_NS<1000
+    print('Removed ' + str((np.sum(boo)-len(boo))*-1) + 'fish for weird freezes reasons')
+    dfAll = dfAll[boo]
+    dfZ = dfZ[boo]
+    
     # IQR computations
     dfIQR=dfZ.copy()
     for col in numeric_cols:
@@ -387,15 +393,9 @@ else:
         dfIQR.to_pickle("All_SCZ_Fish_IQR_" + date + ".pkl")
         bouts_df.to_pickle("All_SCZ_Fish_Bouts_" + date)
         print('saved dataframes')
-# Stats
-dfStats=dfAll.copy()
-excList=['boutAngles_NS','boutAngles_S','boutDists_NS','boutDists_S']
-for exc in excList:
-    dfStats=dfStats.drop(exc,axis=1)
-MannW_results_all_corr = SCZA.mann_whitney_all_vs_scrambled(dfStats)
 
 #%% Functions
-def heatmapBehaviour(df, MannW_results_all_corr, figname=None, vmin=-1.8, vmax=1.8, col='Spectral_r', sort=False, genotype_order=None, behaviour_order=None):
+def heatmapBehaviour(df, MannW_results_all_corr, figname=None, vmin=-1.8, vmax=1.8, col='Spectral_r', sort=False, genotype_order=None, behaviour_order=None, significance_marker_code = 3):
     if genotype_order is None:
         genotype_order = df['Genotype'].unique()
 
@@ -441,16 +441,16 @@ def heatmapBehaviour(df, MannW_results_all_corr, figname=None, vmin=-1.8, vmax=1
 
     
     # df_pivot = pd.pivot_table(MannW_results_all_corr_sort, values='pvalue_corr', index=['Genotype'], columns=['Column'])
-    
-    for i in range(df_GeneMean.shape[0]):
-        for j in range(df_GeneMean.shape[1]):
-            value = df_pivot.iloc[i, j]
-            if value < 0.001:
-                ax.text(j, i, "**", ha="center", va="center", color='black', fontweight='bold')
-            elif value < 0.01:
-                ax.text(j, i, "*", ha="center", va="center", color='black', fontweight='bold')
-            elif value < 0.05:
-                ax.text(j, i, "*", ha="center", va="center", color='black', fontweight='bold')
+    if significance_marker_code>0:
+        for i in range(df_GeneMean.shape[0]):
+            for j in range(df_GeneMean.shape[1]):
+                value = df_pivot.iloc[i, j]
+                if value < 0.001 and significance_marker_code>2:
+                    ax.text(j, i, "***", ha="center", va="center", color='black', fontweight='bold')
+                elif value < 0.01 and significance_marker_code>1:
+                    ax.text(j, i, "**", ha="center", va="center", color='black', fontweight='bold')
+                elif value < 0.05 and significance_marker_code>0:
+                    ax.text(j, i, "*", ha="center", va="center", color='black', fontweight='bold')
 
     return ax
 
@@ -503,20 +503,32 @@ def heatmapBehaviour1(df,MannW_results_all_corr,figname=None,vmin=-1.8,vmax=1.8,
 #%% find zscore, IQR and stats
 # axZ=heatmapBehaviour(dfZ,MannW_results_all_corr,figname='ZScodarkred',col='Spectral')
 # axIQR=heatmapBehaviour(dfIQR,MannW_results_all_corr,figname='IQR',col='Spectral',vmin=-2,vmax=2)
+# Stats
+dfStats=dfAll.copy()
+excList=['boutAngles_NS','boutAngles_S','boutDists_NS','boutDists_S']
+for exc in excList:
+    dfStats=dfStats.drop(exc,axis=1)
+MannW_results_all_corr = SCZA.mann_whitney_all_vs_scrambled(dfStats)
 
 # Simple difference between social and non social phases - helps adjust for baseline changes rather than changes due to the social cue. 
+diff_df_all=SCZA.compute_phase_difference(dfStats)
 diff_dfZ=SCZA.compute_phase_difference(dfZ)
 diff_dfIQR=SCZA.compute_phase_difference(dfIQR)
+
+MannW_results_diff_corr = SCZA.mann_whitney_all_vs_scrambled(diff_df_all)
 MannW_results_diff_corrZ = SCZA.mann_whitney_all_vs_scrambled(diff_dfZ)
 MannW_results_diff_corrIQR = SCZA.mann_whitney_all_vs_scrambled(diff_dfIQR)
 # axDiffZ=heatmapBehaviour(diff_dfZ,MannW_results_diff_corrZ,figname='ZScodarkred_Diff')
 # axDiffIQR=heatmapBehaviour(diff_dfIQR,MannW_results_diff_corrIQR,figname='IQR_Diff')
 #  append to dfZ and dfIQR for complete fingerprint
+df_all=pd.concat([dfAll,diff_df_all],axis=1)
+df_all = df_all.loc[:,~df_all.columns.duplicated()].copy()
 dfzz=pd.concat([dfZ,diff_dfZ],axis=1)
 dfzz = dfzz.loc[:,~dfzz.columns.duplicated()].copy()
 dfqq=pd.concat([dfIQR,diff_dfIQR],axis=1)
 dfqq = dfqq.loc[:,~dfqq.columns.duplicated()].copy()
-MannW_results_all_corr_fullZ=MannW_results_all_corr.append(MannW_results_diff_corrZ)
+MannW_results_all_corr_full=MannW_results_all_corr.append(MannW_results_diff_corr)
+# MannW_results_all_corr_fullZ=MannW_results_all_corr.append(MannW_results_diff_corrZ)
 MannW_results_all_corr_fullIQR=pd.concat([MannW_results_all_corr,MannW_results_diff_corrIQR],axis=0)
 
 #%%
@@ -524,39 +536,68 @@ MannW_results_all_corr_fullIQR=pd.concat([MannW_results_all_corr,MannW_results_d
 # plt.close('IQR')
 behaviour_order = [0,1,18,2,3,19,4,5,20,6,7,21,8,9,22,10,11,23,12,13,24,14,15,25,17,18,26]
 genotype_order = conditionNames[1:]
-heatmapBehaviour(dfzz, MannW_results_all_corr=MannW_results_all_corr_fullZ, figname='ZScodarkred_corrected', genotype_order=genotype_order, behaviour_order=behaviour_order)
+heatmapBehaviour(dfzz, MannW_results_all_corr=MannW_results_all_corr_full, figname='darkred_corrected', genotype_order=genotype_order, behaviour_order=behaviour_order, significance_marker_code = 3)
 # axZ=heatmapBehaviour1(dfzz,MannW_results_all_corr_fullZ,figname='ZScodarkred_corrected')
 # axIQR=heatmapBehaviour(dfqq,MannW_results_all_corr_fullIQR,figname='IQR_fdr_bh_corrected')
-
+# %%
 #    Data collected, now some helper functions to run stats and plots
 # 
 #------------------------
 # Summary plots and stats
+def sigColors(sig_Diff,sig,
+              control_color='black',
+              sig_low_color=[10/255,40/255,205/255,1],
+              sig_high_color=[175/255,21/255,70/255,1],
+              cust_grey=[0.3,0.3,0.3,1]):
+
+    colorDict={'-1' : control_color,
+               '1' : sig_low_color,
+               '2' : sig_high_color,
+               '0' : cust_grey,
+               }
+    bar_colors_d=[]
+    bar_colors_t=[]
+    bar_colors=[]
+    for i in range(0,2):
+        for j in range(len(sig_Diff)):
+            bar_colors_d.append(colorDict[str(sig_Diff[j])])
+            bar_colors_t.append(colorDict[str(sig[i][j])])
+        bar_colors.append(bar_colors_t)
+        bar_colors_t=[]
+
+    return bar_colors_d,bar_colors
+
 #%% Run stats and plots for VPI
 # plotType='nothing'
 import SCZ_analysis as SCZA
 
 ### COLORS ###
-control_color='black'
-sig_low_color=[10/255,40/255,205/255,1]
-sig_high_color=[175/255,21/255,70/255,1]
-cust_grey=[0.3,0.3,0.3,1]
+# control_color='black'
+# sig_low_color=[10/255,40/255,205/255,1]
+# sig_high_color=[175/255,21/255,70/255,1]
+# cust_grey=[0.3,0.3,0.3,1]
 linewidth=2
 back_color=[0.6,0.6,0.6,1]
 ###
-
 att=''
 variable='VPI'
 NS_data=VPI_NS_summary
 S_data=VPI_S_summary
 ylim=(-0.1,0.7)
 
-bar_colors=[control_color, sig_low_color, sig_low_color, sig_low_color,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
+
+sig_Diff=[-1,1,1,1,1,1,0,0,0,0,0]
+sig_NS=[-1,0,0,0,0,0,0,0,0,0,0]
+sig_S=[-1,1,1,0,0,1,0,0,0,0,0]
+sig=[sig_NS,sig_S]
+
+bar_colors_d,bar_colors=sigColors(sig_Diff, sig)
+# bar_colors=[control_color, sig_low_color, sig_low_color, sig_low_color,sig_low_color,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
 # bar_colors.append([control_color,'Magenta',control_color, control_color,control_color,control_color,'Magenta',control_color,control_color,'Magenta',control_color])
-SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data, back_color=back_color,linewidth=linewidth,swarm_colors=bar_colors,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
+SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data, back_color=back_color,linewidth=linewidth,swarm_colors=bar_colors_d,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
 ylim=(-1,1)
-bar_colors=[[control_color, cust_grey, cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]]
-bar_colors.append([control_color, sig_low_color,sig_low_color, cust_grey,cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
+# bar_colors=[[control_color, cust_grey, cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]]
+# bar_colors.append([control_color, sig_low_color,sig_low_color, cust_grey,cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
 att='swarm'
 ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth, back_color=back_color,se=True, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
 att='Summary'
@@ -570,16 +611,25 @@ S_data=BPS_S_summary
 # ylim=(1,6)
 ylim=None
 
-bar_colors=[control_color, cust_grey, cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
-SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data,linewidth=linewidth,back_color=back_color, swarm_colors=bar_colors,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
-ylim=(1.5,3)
-bar_colors=[[control_color, sig_low_color, sig_low_color, sig_low_color,cust_grey,sig_low_color,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey]]
-bar_colors.append([control_color, sig_low_color, cust_grey, sig_low_color,cust_grey,sig_low_color,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey])
+
+sig_Diff=[-1,0,0,1,0,0,0,0,0,0,0]
+sig_NS=[-1,1,1,0,1,1,0,1,1,0,0]
+sig_S=[-1,1,0,0,1,1,0,1,1,0,0]
+sig=[sig_NS,sig_S]
+
+bar_colors_d,bar_colors=sigColors(sig_Diff, sig)
+
+
+# bar_colors=[control_color, cust_grey, cust_grey, sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
+SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data,linewidth=linewidth,back_color=back_color, swarm_colors=bar_colors_d,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
+ylim=(1.5,3.5)
+# bar_colors=[[control_color, sig_low_color, sig_low_color, cust_grey,sig_low_color,sig_low_color,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey]]
+# bar_colors.append([control_color, sig_low_color, cust_grey, cust_grey,sig_low_color,sig_low_color,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey])
 att='swarm'
-ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=linewidth,back_color=back_color,se=True, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data, linewidth=linewidth,back_color=back_color, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
 att='Summary'
-ylim=(1.5,3)
-ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth,back_color=back_color, se=True, swarm=False,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
+ylim=(1.5,3.5)
+ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth,back_color=back_color, swarm=False,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
 
 #%% Run stats and plots for Distance
 variable='Distance'
@@ -588,11 +638,18 @@ S_data=Distance_S_summary
 # ylim=(1,6)
 ylim=None
 
-bar_colors=[control_color, cust_grey, cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
-SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data, linewidth=linewidth,back_color=back_color,swarm_colors=bar_colors,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
+sig_Diff=[-1,0,0,1,0,0,0,0,0,0,0]
+sig_NS=[-1,1,1,0,0,1,0,1,0,0,2]
+sig_S=[-1,1,1,1,0,1,0,1,0,0,0]
+sig=[sig_NS,sig_S]
+
+bar_colors_d,bar_colors=sigColors(sig_Diff, sig)
+
+# bar_colors=[control_color, cust_grey, cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]
+SCZA.plotDifferenceSwarm(variable, conditionNames, S_data, NS_data, linewidth=linewidth,back_color=back_color,swarm_colors=bar_colors_d,swarm=False,ci=False,fignames=['NS', 'S'], att=att, ylim=ylim)
 ylim=(2000,8000)
-bar_colors=[[control_color, sig_low_color, sig_low_color, cust_grey,cust_grey,cust_grey,sig_high_color,sig_low_color,cust_grey,cust_grey,sig_high_color]]
-bar_colors.append([control_color, sig_low_color, sig_low_color, cust_grey,sig_low_color,cust_grey,sig_high_color,sig_low_color,cust_grey,cust_grey,cust_grey])
+# bar_colors=[[control_color, sig_low_color, sig_low_color, cust_grey,cust_grey,cust_grey,sig_high_color,sig_low_color,cust_grey,cust_grey,sig_high_color]]
+# bar_colors.append([control_color, sig_low_color, sig_low_color, cust_grey,sig_low_color,cust_grey,sig_high_color,sig_low_color,cust_grey,cust_grey,cust_grey])
 att='swarm'
 ax=SCZA.plotSwarm(variable, conditionNames, NS_data, S_data,linewidth=linewidth,back_color=back_color, se=True, swarm=True,swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
 att='Summary'
@@ -623,9 +680,17 @@ att='_bar'
 NS_data=Freezes_NS_summary
 S_data=Freezes_S_summary
 ylim=(0,14)
-bar_colors=[[control_color,sig_high_color,cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]]
-bar_colors.append([control_color,sig_high_color,cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,sig_high_color,cust_grey,cust_grey,cust_grey])
-bar_colors.append([control_color,cust_grey,cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
+
+sig_Diff=[-1,0,0,0,0,0,0,0,0,0,0]
+sig_NS=[-1,2,0,1,0,0,0,0,0,0,0]
+sig_S=[-1,2,0,0,0,0,0,2,0,0,0]
+sig=[sig_NS,sig_S]
+
+bar_colors_d,bar_colors_t=sigColors(sig_Diff, sig)
+bar_colors=[bar_colors_t[0],bar_colors_t[1],bar_colors_d]
+# bar_colors=[[control_color,sig_high_color,cust_grey, sig_low_color,cust_grey ,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey]]
+# bar_colors.append([control_color,sig_high_color,cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,sig_high_color,cust_grey,cust_grey,cust_grey])
+# bar_colors.append([control_color,cust_grey,cust_grey, cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
 
 SCZA.plotBarWithSEM(variable, conditionNames, NS_data, S_data, linewidth=linewidth,bar_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
 # SCZA.plotSwarmWithFormatting(variable, conditionNames, NS_data, S_data, swarm_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
@@ -642,9 +707,18 @@ att='_bar'
 NS_data=Percent_Moving_NS_summary
 S_data=Percent_Moving_S_summary
 ylim=(10,40)
-bar_colors=[[control_color,sig_low_color,sig_low_color, sig_low_color,sig_high_color,sig_low_color,cust_grey,cust_grey,cust_grey,sig_low_color,sig_high_color]]
-bar_colors.append([control_color,sig_low_color,cust_grey, sig_low_color,cust_grey,cust_grey,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey])
-bar_colors.append([control_color,cust_grey,cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
+
+sig_Diff=[-1,0,0,1,0,0,0,0,0,0,0]
+sig_NS=[-1,1,1,2,1,0,2,0,0,1,2]
+sig_S=[-1,1,0,0,1,0,0,1,1,0,0]
+sig=[sig_NS,sig_S]
+
+bar_colors_d,bar_colors_t=sigColors(sig_Diff, sig)
+bar_colors=[bar_colors_t[0],bar_colors_t[1],bar_colors_d]
+
+# bar_colors=[[control_color,sig_low_color,sig_low_color, sig_low_color,sig_high_color,sig_low_color,cust_grey,cust_grey,cust_grey,sig_low_color,sig_high_color]]
+# bar_colors.append([control_color,sig_low_color,cust_grey, sig_low_color,cust_grey,cust_grey,cust_grey,sig_low_color,sig_low_color,cust_grey,cust_grey])
+# bar_colors.append([control_color,cust_grey,cust_grey, cust_grey,sig_low_color,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey,cust_grey])
 
 SCZA.plotBarWithSEM(variable, conditionNames, NS_data, S_data, linewidth=linewidth,bar_colorsS=bar_colors,fignames=['NS', 'S'], att=att, ylim=ylim)
 
